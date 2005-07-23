@@ -7,12 +7,12 @@
 ;            to allow cross-using this routines, even for non-GPLed code
 ;            (for example, but not limited to, the Star Commander).
 ;
-; "$Id: tdchange.a65,v 1.1.2.1 2005-07-23 10:25:38 strik Exp $"
+; "$Id: tdchange.a65,v 1.1.2.2 2005-07-23 12:54:44 strik Exp $"
 ;
 
 ;Detect disk change function for 1541/1570/1571 drives
 
-		.include "../common.i65"	;Common constants
+		.include "common.i65"	;Common constants
 
 StartAddress	= $0500
 
