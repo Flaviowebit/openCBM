@@ -1,4 +1,5 @@
-/* gcr.h - Group Code Recording helper functions
+/*
+    gcr.h - Group Code Recording helper functions
 
     (C) 2001-05 Markus Brenner <markus@brenner.de>
     	and Pete Rittwage <peter@rittwage.com>
@@ -31,13 +32,15 @@
 /* NIB format constants */
 #define GCR_TRACK_LENGTH 0x2000
 
-#define MATCH_LENGTH 7	// bytes to match to determine track cycle
+#define MATCH_LENGTH 7		// bytes to match to determine track cycle
 
-/* number of GCR bytes until NO SYNC error
-   timer counts down from $d000 to $8000 (20480 cycles)
-   until timeout when waiting for a SYNC signal
-   This is approx. 20.48 ms, which is approx 1/10th disk revolution
-   8000 GCR bytes / 10 = 800 bytes */
+/*
+    number of GCR bytes until NO SYNC error
+    timer counts down from $d000 to $8000 (20480 cycles)
+    until timeout when waiting for a SYNC signal
+    This is approx. 20.48 ms, which is approx 1/10th disk revolution
+    8000 GCR bytes / 10 = 800 bytes
+*/
 //#define MAX_SYNC_OFFSET 800
 /* this was too small for Lode Runner original (805), so increase to 820 */
 //#define MAX_SYNC_OFFSET 820
@@ -53,7 +56,7 @@
 #define GCR_MIN_FORMATTED 64	// chessmaster track 29 is shortest so far
 
 /* Disk Controller error codes */
-#define OK                  0x01
+#define SECTOR_OK           0x01
 #define HEADER_NOT_FOUND    0x02
 #define SYNC_NOT_FOUND      0x03
 #define DATA_NOT_FOUND      0x04
@@ -76,59 +79,50 @@
 #define ALIGN_LONGSYNC		3
 #define ALIGN_WEAK			4
 #define ALIGN_VMAX			5
-#define ALIGN_VORPAL		6
-#define ALIGN_RAPIDLOK		7
-#define ALIGN_AUTOGAP		8
+#define ALIGN_AUTOGAP		6
 
 #define GCR_MASK_BAD_FIRST 0
 #define GCR_MASK_BAD_LAST 1
 
+/* global variables */
+extern char sector_map_1541[];
+extern int speed_map_1541[];
+extern int capacity[];
+extern int capacity_min[];
+extern int capacity_max[];
+
 /* prototypes */
-void convert_4bytes_to_GCR(BYTE *buffer, BYTE *ptr);
-
-int convert_4bytes_from_GCR(BYTE *gcr, BYTE *plain);
-
-int extract_id(BYTE *gcr_track, BYTE *id);
-
-int find_track_cycle(BYTE **cycle_start, BYTE **cycle_stop, int cap_min, int cap_max);
-
-int find_nondos_track_cycle(BYTE **cycle_start, BYTE **cycle_stop, int cap_min, int cap_max);
-
-BYTE convert_GCR_sector(BYTE *gcr_start, BYTE *gcr_end,
-                        BYTE *d64_sector,
-                        int track, int sector, BYTE *id);
-
-void convert_sector_to_GCR(BYTE *buffer, BYTE *ptr,
-                                  int track, int sector, BYTE *diskID, int error);
-
-BYTE* find_sector_gap(BYTE *work_buffer, int tracklen, int *p_sectorlen);
-
-BYTE* find_sector0(BYTE *work_buffer, int tracklen, int *p_sectorlen);
-
-int extract_GCR_track(BYTE *destination, BYTE *source, int *align, int force_align, int cap_min, int cap_max);
-
-int replace_bytes(BYTE *buffer, int length, BYTE srcbyte, BYTE dstbyte);
-
-int check_bad_gcr(BYTE *gcrdata, int length, int fix);
-
-int check_sync_flags(BYTE *gcrdata, int density, int length);
-
-void bitshift(BYTE *gcrdata, int length, int bits);
-
-int check_errors(BYTE *gcrdata, int length, int track, char *id, char *errorstring);
-
-int check_empty(BYTE *gcrdata, int length, int track, char *id, char *errorstring);
-
-int compare_tracks(BYTE *track1, BYTE *track2, int length1, int length2, int same_disk,
-				   char *outputstring);
-
-int compare_sectors(BYTE *track1, BYTE *track2, int length1, int length2, char *id1, char *id2,
-					int track, char *outputstring);
-
-int reduce_runs(BYTE *buffer, int length, int length_max, int minrun, BYTE target);
-
-int is_bad_gcr(BYTE *gcrdata, int length, int pos);
-
-int check_formatted(BYTE *gcrdata);
-
-int check_valid_data(BYTE *data, int length);
+int find_sync(BYTE ** gcr_pptr, BYTE * gcr_end);
+void convert_4bytes_to_GCR(BYTE * buffer, BYTE * ptr);
+int convert_4bytes_from_GCR(BYTE * gcr, BYTE * plain);
+int extract_id(BYTE * gcr_track, BYTE * id);
+int find_track_cycle(BYTE ** cycle_start, BYTE ** cycle_stop, int cap_min,
+  int cap_max);
+int find_nondos_track_cycle(BYTE ** cycle_start, BYTE ** cycle_stop,
+  int cap_min, int cap_max);
+BYTE convert_GCR_sector(BYTE * gcr_start, BYTE * gcr_end,
+  BYTE * d64_sector, int track, int sector, BYTE * id);
+void convert_sector_to_GCR(BYTE * buffer, BYTE * ptr,
+  int track, int sector, BYTE * diskID, int error);
+BYTE * find_sector_gap(BYTE * work_buffer, int tracklen, int * p_sectorlen);
+BYTE * find_sector0(BYTE * work_buffer, int tracklen, int * p_sectorlen);
+int extract_GCR_track(BYTE * destination, BYTE * source, int * align,
+  int force_align, int cap_min, int cap_max);
+int replace_bytes(BYTE * buffer, int length, BYTE srcbyte, BYTE dstbyte);
+int check_bad_gcr(BYTE * gcrdata, int length, int fix);
+int check_sync_flags(BYTE * gcrdata, int density, int length);
+void bitshift(BYTE * gcrdata, int length, int bits);
+int check_errors(BYTE * gcrdata, int length, int track, BYTE * id,
+  char * errorstring);
+int check_empty(BYTE * gcrdata, int length, int track, BYTE * id,
+  char * errorstring);
+int compare_tracks(BYTE * track1, BYTE * track2, int length1, int length2,
+  int same_disk, char * outputstring);
+int compare_sectors(BYTE * track1, BYTE * track2, int length1, int length2,
+  BYTE * id1, BYTE * id2, int track, char * outputstring);
+int strip_runs(BYTE * buffer, int length, int minrun, BYTE target);
+int reduce_runs(BYTE * buffer, int length, int length_max, int minrun,
+  BYTE target);
+int is_bad_gcr(BYTE * gcrdata, int length, int pos);
+int check_formatted(BYTE * gcrdata);
+int check_valid_data(BYTE * data, int length);

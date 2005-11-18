@@ -1,12 +1,8 @@
-/* MNIB
+/*
+ * MNIB
  * Copyright 2001-2005 Markus Brenner <markus@brenner.de>
  * and Pete Rittwage <peter@rittwage.com>
  */
-
-#ifndef __MNIB_H__
-#define __MNIB_H__
-
-#define FD 1                /* (unused) file number for cbm_routines */
 
 #define FL_STEPTO      0x00
 #define FL_MOTOR       0x01
@@ -28,7 +24,7 @@
 
 #define DISK_NORMAL    0
 
-#define IMAGE_NIB      0    /* destination image format */
+#define IMAGE_NIB      0	/* destination image format */
 #define IMAGE_D64      1
 #define IMAGE_G64      2
 
@@ -38,9 +34,9 @@
 
 // tested extensively with Pete's Newtronics mech-based 1541.
 //#define CAPACITY_MARGIN 11	// works with FL_WRITENOSYNC
-//#define CAPACITY_MARGIN 13	// works with both FL_WRITESYNC and FL_WRITENOSYNC
-#define CAPACITY_MARGIN 16	// safe value
-
+//#define CAPACITY_MARGIN 13	// works with both FL_WRITESYNC and
+								// FL_WRITENOSYNC
+#define CAPACITY_MARGIN 16		// safe value
 
 #define MODE_READ_DISK     	0
 #define MODE_WRITE_DISK    	1
@@ -48,75 +44,51 @@
 #define MODE_WRITE_RAW	   	3
 #define MODE_TEST_ALIGNMENT 4
 
-BYTE start_track;
-BYTE end_track;
-BYTE track_inc;
-int reduce_syncs;
-int reduce_weak;
-int reduce_gaps;
-int fix_gcr;
-int aggressive_gcr;
-int current_track;
-int align;
-int force_align;
-int read_killer;
-int error_retries;
-unsigned int lpt[4];
-int lpt_num;
-int drivetype;
-unsigned int floppybytes;
-int disktype;
-int imagetype;
-int mode;
-int verbose;
-int auto_density_adjust;
+#ifndef DJGPP
+# include <opencbm.h>
+#endif
 
-FILE *fplog;
-BYTE diskbuf[84 * 0x2000];
-int track_length[84];
-int track_density[84];
-char diskid[3];
+/* global variables */
+extern char bitrate_range[4];
+extern char bitrate_value[4];
+extern char density_branch[4];
+extern int mode;
+extern FILE * fplog;
+extern int read_killer;
+extern unsigned int error_retries;
+extern int align;
+extern int force_align;
+extern BYTE start_track, end_track, track_inc;
+extern int fix_gcr, reduce_syncs, reduce_gaps, reduce_weak, verify;
+extern int imagetype, auto_density_adjust;
 
-/* prototypes */
+/* function prototypes */
 
 /* read.c */
-int read_halftrack(CBM_FILE fd, int halftrack, BYTE *buffer);
-int paranoia_read_halftrack(CBM_FILE fd, int halftrack, BYTE *buffer);
-int read_d64(CBM_FILE fd, FILE *fpout);
-void read_nib(CBM_FILE fd, FILE *fpout, char *track_header);
+BYTE read_halftrack(CBM_FILE fd, int halftrack, BYTE * buffer);
+int read_d64(CBM_FILE fd, FILE * fpout);
+void read_nib(CBM_FILE fd, FILE * fpout, char * track_header);
 
 /* write.c */
-void write_halftrack(int halftrack, int density, unsigned int length, BYTE *gcrdata);
-void master_disk(CBM_FILE fd);
 void write_raw(CBM_FILE fd);
 void unformat_disk(CBM_FILE fd);
-void unformat_track(CBM_FILE fd, int track);
-void parse_disk(CBM_FILE fd, FILE *fpin, char *track_header);
-void write_d64(CBM_FILE fd, FILE *fpin);
+void parse_disk(CBM_FILE fd, FILE * fpin, char * track_header);
+int write_d64(CBM_FILE fd, FILE * fpin);
 
 /* mnib.c  */
-int compare_extension(char *filename, char *extension);
-void upload_code(CBM_FILE fd);
 int test_par_port(CBM_FILE fd);
-int verify_floppy(CBM_FILE fd);
-int find_par_port(CBM_FILE fd);
+void send_mnib_cmd(CBM_FILE fd, unsigned char cmd);
 void set_full_track(CBM_FILE fd);
 void motor_on(CBM_FILE fd);
 void motor_off(CBM_FILE fd);
 void step_to_halftrack(CBM_FILE fd, int halftrack);
 unsigned int track_capacity(CBM_FILE fd);
-void reset_floppy(CBM_FILE fd);
+void reset_floppy(CBM_FILE fd, BYTE drive);
+int set_density(CBM_FILE fd, int density);
 int set_bitrate(CBM_FILE fd, int density);
-int set_default_bitrate(CBM_FILE fd, int track);
-int scan_track(CBM_FILE fd, int track);
-int scan_density(CBM_FILE fd);
+BYTE set_default_bitrate(CBM_FILE fd, int track);
+BYTE scan_track(CBM_FILE fd, int track);
+BYTE scan_density(CBM_FILE fd);
 void adjust_target(CBM_FILE fd);
-void file2disk(CBM_FILE fd, char *filename);
-void disk2file(CBM_FILE fd, char *filename);
-void usage(void);
-//int main(int argc, char *argv[]);
 
-/*linux send_par_cmd is needed here, because we haven't it in the kernel */
-void send_par_cmd(CBM_FILE fd, BYTE cmd);
-
-#endif
+char char_fgetc(FILE *stream);
