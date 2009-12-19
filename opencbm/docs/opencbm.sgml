@@ -1,13 +1,14 @@
 <!doctype linuxdoc system>
 
 <article>
-<!-- $Id: opencbm.sgml,v 1.5.4.7 2009-12-03 18:09:49 strik Exp $ -->
-<title>OpenCBM 0.4.2 Users Guide
+<!-- $Id: opencbm.sgml,v 1.5.4.8 2009-12-19 11:30:45 strik Exp $ -->
+<title>OpenCBM 0.4.3 Users Guide
 <author>Michael Klein, <htmlurl url="mailto:nip@c64.org" name="nip@c64.org">,
 Spiro Trikaliotis, <htmlurl url="mailto:cbm4win@trikaliotis.net"
 name="cbm4win@trikaliotis.net">, Wolfgang Moser <htmlurl url="http://d81.de/" name="d81.de">,
+Tim Schürmann <htmlurl url="http://www.tim-schuermann.de/" name="www.tim-schuermann.de">,
 Arnd Menge <htmlurl url="mailto:arnd(at)jonnz(dot)de" name="arnd(at)jonnz(dot)de">,
-<!-- _DATE_ --><date>2007-11-18
+<!-- _DATE_ --><date>2009-12-19
 
 <abstract>
 This document describes the OpenCBM package, a Linux kernel module and Windows
@@ -37,7 +38,7 @@ id="cable" name="cable">.
 <sect1>Introduction to OpenCBM<label id="introduction">
 
 <p>
-This is version 0.4.2 of OpenCBM, a kernel device driver for the serial CBM bus
+This is version 0.4.3 of OpenCBM, a kernel device driver for the serial CBM bus
 (C64, VIC-20, etc.) for Linux and Windows. OpenCBM is a re-join of the two
 projects cbm4linux (latest standalone version: 0.3.2) and cbm4win (latest
 standalone version: 0.1.0a). It should be noted that both projects were highly
@@ -234,6 +235,31 @@ url="http://sta.c64.org/xcables.html" name="http://sta.c64.org/xcables.html">)
 
 <p>
 <descrip>
+<tag/OpenCBM v0.4.3 (2009-12-19):/
+
+<itemize>
+ <item>All:
+  <itemize>
+  <item>Added cbm_parallel_burst_read_track_var() for use by mnib.
+  <item>Added a timeout in talk-listener-turnaround. This should prevent a freeze in case of errors.
+  (This change was done because of an implementation error in Linux; on Windows, this did not happen,
+  but the timeout was added anyway.)
+  <item>Added missing copyright statements into some files, for easier legal
+  integration into distributions.
+  </itemize>
+ <item>Windows:
+  <itemize>
+  <item>cbm_handshaked_read(): Fixed a logical error in triple-debouncing the parallel port
+  </itemize>
+ <item>Linux:
+  <itemize>
+  <item>Compilation fixes for kernels 2.6.24 and newer, and for AMD64 targets.
+  <item>Increased timeouts for mnib/nibtools protocol. This fixes problems with these protocols.
+  <item>Fixed a bug which could result in the kernel freezing when trying to access a device that does not exist.
+  <item>Some manual pages (cbmcopy, cbmctrl, cbmformat, cbmforng, d64copy ) rewritten and made them more internationalisation friendly.
+  </itemize>
+</itemize>
+
 <tag/OpenCBM v0.4.2 (2007-11-18):/
 
 <itemize>

@@ -5,12 +5,12 @@
  *	2 of the License, or (at your option) any later version.
  *
  *  Copyright 2005      Tim Schürmann
- *  Copyright 2009      Arnd <arnd(at)jonnz(dot)de>
+ *  Copyright 2009      Arnd Menge <arnd(at)jonnz(dot)de>
 */
 
 #ifdef SAVE_RCSID
 static char *rcsid =
-    "@(#) $Id: archmnib.c,v 1.4.2.1 2009-10-04 15:49:19 strik Exp $";
+    "@(#) $Id: archmnib.c,v 1.4.2.2 2009-12-19 11:30:45 strik Exp $";
 #endif
 
 #include <fcntl.h>

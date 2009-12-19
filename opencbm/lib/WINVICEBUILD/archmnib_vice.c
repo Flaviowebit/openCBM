@@ -6,14 +6,14 @@
  *
  *  Copyright 2005      Tim Schürmann
  *  Copyright 2005      Spiro Trikaliotis
- *  Copyright 2009      Arnd <arnd(at)jonnz(dot)de>
+ *  Copyright 2009      Arnd Menge <arnd(at)jonnz(dot)de>
  *
 */
 
 /*! ************************************************************** 
 ** \file lib/WINVICEBUILD/archmnib_vice.c \n
-** \author Tim Schürmann, Spiro Trikaliotis, Arnd \n
-** \version $Id: archmnib_vice.c,v 1.4.4.1 2009-10-04 15:49:19 strik Exp $ \n
+** \author Tim Schürmann, Spiro Trikaliotis, Arnd Menge \n
+** \version $Id: archmnib_vice.c,v 1.4.4.2 2009-12-19 11:30:45 strik Exp $ \n
 ** \n
 ** \brief Shared library / DLL for accessing the mnib driver functions, windows specific code for VICE emulation
 **
