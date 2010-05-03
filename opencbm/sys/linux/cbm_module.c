@@ -19,7 +19,7 @@
 
 #ifdef SAVE_RCSID
 static char *rcsid =
-    "@(#) $Id: cbm_module.c,v 1.13.2.40 2010-05-03 00:48:18 fbriere Exp $";
+    "@(#) $Id: cbm_module.c,v 1.13.2.41 2010-05-03 00:48:23 fbriere Exp $";
 #endif
 
 #include <linux/version.h>
@@ -1076,11 +1076,11 @@ int cbm_handshaked_read(int toggle)
 	if (!toggle) {
 		while (GET(DATA_IN))
 			if (to++ > TO_HANDSHAKED_READ)
-				return (-1);
+				return -1;
 	} else {
 		while (!GET(DATA_IN))
 			if (to++ > TO_HANDSHAKED_READ)
-				return (-1);
+				return -1;
 	}
 
 	timeoutcount = 0;
