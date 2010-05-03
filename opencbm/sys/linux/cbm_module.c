@@ -19,7 +19,7 @@
 
 #ifdef SAVE_RCSID
 static char *rcsid =
-    "@(#) $Id: cbm_module.c,v 1.13.2.46 2010-05-03 00:48:46 fbriere Exp $";
+    "@(#) $Id: cbm_module.c,v 1.13.2.47 2010-05-03 00:48:51 fbriere Exp $";
 #endif
 
 #include <linux/version.h>
@@ -811,18 +811,18 @@ static void cbm_interrupt_pp(void *dev_id)
 #endif /* DIRECT_PORT_ACCESS */
 
 static struct file_operations cbm_fops = {
-	.owner = THIS_MODULE,	/* owner */
-	.read = cbm_read,	/* read */
-	.write = cbm_write,	/* write */
-	.ioctl = cbm_ioctl,	/* ioctl */
-	.open = cbm_open,	/* open */
-	.release = cbm_release,	/* release */
+	.owner		= THIS_MODULE,
+	.read		= cbm_read,
+	.write		= cbm_write,
+	.ioctl		= cbm_ioctl,
+	.open		= cbm_open,
+	.release	= cbm_release,
 };
 
 static struct miscdevice cbm_dev = {
-	CBM_MINOR,
-	NAME,
-	&cbm_fops
+	.minor		= CBM_MINOR,
+	.name		= NAME,
+	.fops		= &cbm_fops,
 };
 
 void cbm_cleanup(void)
