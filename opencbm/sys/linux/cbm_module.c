@@ -19,7 +19,7 @@
 
 #ifdef SAVE_RCSID
 static char *rcsid =
-    "@(#) $Id: cbm_module.c,v 1.13.2.38 2010-05-03 00:48:08 fbriere Exp $";
+    "@(#) $Id: cbm_module.c,v 1.13.2.39 2010-05-03 00:48:13 fbriere Exp $";
 #endif
 
 #include <linux/version.h>
@@ -177,10 +177,11 @@ static int out_port;
 static struct pardevice *cbm_device;
 #endif
 
-#define GET(line)        ((POLL()&line)==0?1:0)
-#define SET(line)        (CTRL_WRITE(out_eor^(out_bits|=line)))
-#define RELEASE(line)    (CTRL_WRITE(out_eor^(out_bits&=~(line))))
-#define SET_RELEASE(s,r) (CTRL_WRITE(out_eor^(out_bits=(out_bits|(s))&~(r))))
+#define GET(line)        ((POLL() & line) == 0 ? 1 : 0)
+#define SET(line)        (CTRL_WRITE(out_eor ^ (out_bits |= line)))
+#define RELEASE(line)    (CTRL_WRITE(out_eor ^ (out_bits &= ~(line))))
+#define SET_RELEASE(s,r) (CTRL_WRITE(out_eor ^ \
+				(out_bits = (out_bits | (s)) & ~(r))))
 
 #ifdef DIRECT_PORT_ACCESS
 # define POLL()           (inb(in_port))
