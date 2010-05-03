@@ -19,7 +19,7 @@
 
 #ifdef SAVE_RCSID
 static char *rcsid =
-    "@(#) $Id: cbm_module.c,v 1.13.2.30 2010-05-03 00:47:30 fbriere Exp $";
+    "@(#) $Id: cbm_module.c,v 1.13.2.31 2010-05-03 00:47:35 fbriere Exp $";
 #endif
 
 #include <linux/version.h>
@@ -143,9 +143,7 @@ MODULE_PARM_DESC(hold_clk, "0=release CLK when idle, >0=strict C64 behaviour. (d
 
 MODULE_AUTHOR("Michael Klein");
 MODULE_DESCRIPTION("Serial CBM bus driver module");
-#ifdef MODULE_LICENSE
 MODULE_LICENSE("GPL");
-#endif  /* MODULE_LICENSE */
 
 #define NAME      "cbm"
 #define CBM_MINOR 177
