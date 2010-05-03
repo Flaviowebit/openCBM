@@ -1,4 +1,4 @@
-# $Id: config.make,v 1.7.4.8 2007-11-18 14:46:11 strik Exp $
+# $Id: config.make,v 1.7.4.9 2010-05-03 00:47:58 fbriere Exp $
 #
 
 
@@ -55,12 +55,6 @@ KERNEL_SOURCE = ${shell for d in {/lib/modules/`uname -r`/build,/usr/src/linux};
 # Find out if we should include linux/autoconf.h or linux/conf.h in the kernel module
 #
 KERNEL_INCLUDE_CONFIG = ${shell for c in ${KERNEL_SOURCE}/include/linux/autoconf.h ${KERNEL_SOURCE}/include/linux/config.h; do test -f $$c && echo $$c; done | head -n 1}
-
-ifneq "$(KERNEL_INCLUDE_CONFIG)" ""
-ifeq "${shell basename ${KERNEL_INCLUDE_CONFIG}}" "config.h"
-KERNEL_DEFINE+=-DKERNEL_INCLUDE_OLD_CONFIG_H=1
-endif
-endif
 
 #
 # kernel driver compile flags.
