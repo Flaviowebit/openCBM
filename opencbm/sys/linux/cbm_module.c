@@ -19,7 +19,7 @@
 
 #ifdef SAVE_RCSID
 static char *rcsid =
-    "@(#) $Id: cbm_module.c,v 1.13.2.31 2010-05-03 00:47:35 fbriere Exp $";
+    "@(#) $Id: cbm_module.c,v 1.13.2.32 2010-05-03 00:47:39 fbriere Exp $";
 #endif
 
 #include <linux/version.h>
@@ -235,14 +235,6 @@ static struct pardevice *cbm_device;
 static wait_queue_head_t cbm_wait_q;
 volatile static int eoi;
 volatile static int cbm_irq_count;
-
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)) || defined(DIRECT_PORT_ACCESS)
-# ifndef IRQ_NONE
-#  define IRQ_NONE
-#  define IRQ_HANDLED
-typedef void irqreturn_t;
-# endif
-#endif
 
 #if defined(DIRECT_PORT_ACCESS) && (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,18))
 # define SA_INTERRUPT IRQF_DISABLED
