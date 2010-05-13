@@ -6,11 +6,11 @@
  *
  *  Copyright 1999-2002 Michael Klein <michael(dot)klein(at)puffin(dot)lb(dot)shuttle(dot)de>
  *  Copyright 1997-2005 Joe Forster <sta(at)c64(dot)org> (Device Detection Code)
- *  Copyright 1997-2005 Wolfgang Moser <cbm(a)d81(o)de>  (Device Detection Code)
+ *  Copyright 1997-2005 Wolfgang Moser (http://d81.de)   (Device Detection Code)
  *  Copyright 2000-2005 Markus Brenner                   (Parallel Burst Routines)
  *  Copyright 2000-2005 Pete Rittwage                    (Parallel Burst Routines)
  *  Copyright 2005      Tim Schürmann                    (Parallel Burst Routines)
- *  Copyright 2005-2006 Spiro Trikaliotis                (Parallel Burst Routines)
+ *  Copyright 2005-2006,2009 Spiro Trikaliotis           (Parallel Burst Routines)
  *  Copyright 2007-2009 Frédéric Brière                  (Adjustments on newer Linux kernels, abstraction from real hardware)
  *  Copyright 2009      Arnd Menge <arnd(at)jonnz(dot)de> (Parallel Burst Routines)
  *
@@ -19,7 +19,7 @@
 
 #ifdef SAVE_RCSID
 static char *rcsid =
-    "@(#) $Id: cbm_module.c,v 1.13.2.48 2010-05-03 00:48:56 fbriere Exp $";
+    "@(#) $Id: cbm_module.c,v 1.13.2.49 2010-05-13 21:48:50 fbriere Exp $";
 #endif
 
 #include <linux/version.h>
