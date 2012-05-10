@@ -49,7 +49,7 @@ opencbm_plugin_parallel_burst_read(CBM_FILE HandleDevice)
 {
     __u_char result;
 
-    result = (__u_char)xum1541_ioctl((usb_dev_handle *)HandleDevice, XUM1541_PARBURST_READ, 0, 0);
+    result = (__u_char)xum1541_ioctl((struct xum1541_usb_handle *)HandleDevice, XUM1541_PARBURST_READ, 0, 0);
     //printf("parburst read: %x\n", result);
     return result;
 }
@@ -74,7 +74,7 @@ opencbm_plugin_parallel_burst_write(CBM_FILE HandleDevice, __u_char Value)
 {
     int result;
 
-    result = xum1541_ioctl((usb_dev_handle *)HandleDevice, XUM1541_PARBURST_WRITE, Value, 0);
+    result = xum1541_ioctl((struct xum1541_usb_handle *)HandleDevice, XUM1541_PARBURST_WRITE, Value, 0);
     //printf("parburst write: %x, res %x\n", Value, result);
 }
 
@@ -84,7 +84,7 @@ opencbm_plugin_parallel_burst_read_n(CBM_FILE HandleDevice, __u_char *Buffer,
 {
     int result;
 
-    result = xum1541_read((usb_dev_handle *)HandleDevice, XUM1541_NIB_COMMAND, Buffer, Length);
+    result = xum1541_read((struct xum1541_usb_handle *)HandleDevice, XUM1541_NIB_COMMAND, Buffer, Length);
     if (result != Length) {
         DBG_WARN((DBG_PREFIX "parallel_burst_read_n: returned with error %d", result));
     }
@@ -98,7 +98,7 @@ opencbm_plugin_parallel_burst_write_n(CBM_FILE HandleDevice, __u_char *Buffer,
 {
     int result;
 
-    result = xum1541_write((usb_dev_handle *)HandleDevice, XUM1541_NIB_COMMAND, Buffer, Length);
+    result = xum1541_write((struct xum1541_usb_handle *)HandleDevice, XUM1541_NIB_COMMAND, Buffer, Length);
     if (result != Length) {
         DBG_WARN((DBG_PREFIX "parallel_burst_write_n: returned with error %d", result));
     }
@@ -132,7 +132,7 @@ opencbm_plugin_parallel_burst_read_track(CBM_FILE HandleDevice, __u_char *Buffer
 {
     int result;
 
-    result = xum1541_read((usb_dev_handle *)HandleDevice, XUM1541_NIB, Buffer, Length);
+    result = xum1541_read((struct xum1541_usb_handle *)HandleDevice, XUM1541_NIB, Buffer, Length);
     if (result != Length) {
         DBG_WARN((DBG_PREFIX "parallel_burst_read_track: returned with error %d", result));
     }
@@ -168,7 +168,7 @@ opencbm_plugin_parallel_burst_read_track_var(CBM_FILE HandleDevice, __u_char *Bu
 
     // Add a flag to indicate this read terminates early after seeing 
     // an 0x55 byte.
-    result = xum1541_read((usb_dev_handle *)HandleDevice, XUM1541_NIB, Buffer, Length | XUM1541_NIB_READ_VAR);
+    result = xum1541_read((struct xum1541_usb_handle *)HandleDevice, XUM1541_NIB, Buffer, Length | XUM1541_NIB_READ_VAR);
     if (result <= 0) {
         DBG_WARN((DBG_PREFIX "parallel_burst_read_track_var: returned with error %d", result));
     }
@@ -202,7 +202,7 @@ opencbm_plugin_parallel_burst_write_track(CBM_FILE HandleDevice, __u_char *Buffe
 {
     int result;
 
-    result = xum1541_write((usb_dev_handle *)HandleDevice, XUM1541_NIB, Buffer, Length);
+    result = xum1541_write((struct xum1541_usb_handle *)HandleDevice, XUM1541_NIB, Buffer, Length);
     if (result != Length) {
         DBG_WARN((DBG_PREFIX "parallel_burst_write_track: returned with error %d", result));
     }
@@ -232,7 +232,7 @@ opencbm_plugin_srq_burst_read(CBM_FILE HandleDevice)
 {
     __u_char result;
 
-    result = (__u_char)xum1541_ioctl((usb_dev_handle *)HandleDevice, XUM1541_SRQBURST_READ, 0, 0);
+    result = (__u_char)xum1541_ioctl((struct xum1541_usb_handle *)HandleDevice, XUM1541_SRQBURST_READ, 0, 0);
     return result;
 }
 
@@ -256,7 +256,7 @@ opencbm_plugin_srq_burst_write(CBM_FILE HandleDevice, __u_char Value)
 {
     int result;
 
-    result = xum1541_ioctl((usb_dev_handle *)HandleDevice, XUM1541_SRQBURST_WRITE, Value, 0);
+    result = xum1541_ioctl((struct xum1541_usb_handle *)HandleDevice, XUM1541_SRQBURST_WRITE, Value, 0);
 }
 
 int CBMAPIDECL
@@ -265,7 +265,7 @@ opencbm_plugin_srq_burst_read_n(CBM_FILE HandleDevice, __u_char *Buffer,
 {
     int result;
 
-    result = xum1541_read((usb_dev_handle *)HandleDevice, XUM1541_NIB_SRQ_COMMAND, Buffer, Length);
+    result = xum1541_read((struct xum1541_usb_handle *)HandleDevice, XUM1541_NIB_SRQ_COMMAND, Buffer, Length);
     if (result != Length) {
         DBG_WARN((DBG_PREFIX "srq_burst_read_n: returned with error %d", result));
     }
@@ -279,7 +279,7 @@ opencbm_plugin_srq_burst_write_n(CBM_FILE HandleDevice, __u_char *Buffer,
 {
     int result;
 
-    result = xum1541_write((usb_dev_handle *)HandleDevice, XUM1541_NIB_SRQ_COMMAND, Buffer, Length);
+    result = xum1541_write((struct xum1541_usb_handle *)HandleDevice, XUM1541_NIB_SRQ_COMMAND, Buffer, Length);
     if (result != Length) {
         DBG_WARN((DBG_PREFIX "srq_burst_write_n: returned with error %d", result));
     }
@@ -313,7 +313,7 @@ opencbm_plugin_srq_burst_read_track(CBM_FILE HandleDevice, __u_char *Buffer, uns
 {
     int result;
 
-    result = xum1541_read((usb_dev_handle *)HandleDevice, XUM1541_NIB_SRQ, Buffer, Length);
+    result = xum1541_read((struct xum1541_usb_handle *)HandleDevice, XUM1541_NIB_SRQ, Buffer, Length);
     if (result != Length) {
         DBG_WARN((DBG_PREFIX "srq_read_track: returned with error %d", result));
     }
@@ -347,7 +347,7 @@ opencbm_plugin_srq_burst_write_track(CBM_FILE HandleDevice, __u_char *Buffer, un
 {
     int result;
 
-    result = xum1541_write((usb_dev_handle *)HandleDevice, XUM1541_NIB_SRQ, Buffer, Length);
+    result = xum1541_write((struct xum1541_usb_handle *)HandleDevice, XUM1541_NIB_SRQ, Buffer, Length);
     if (result != Length) {
         DBG_WARN((DBG_PREFIX "srq_write_track: returned with error %d", result));
     }

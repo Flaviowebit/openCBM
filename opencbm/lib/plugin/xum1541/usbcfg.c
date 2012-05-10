@@ -49,7 +49,7 @@ main(int argc, char **argv)
         fprintf(stderr, "initialization error, aborting\n");
         exit(1);
     }
-    if (xum1541_plugin_control_msg(HandleXum1541, XUM1541_ENTER_BOOTLOADER) == 0) {
+    if (xum1541_plugin_control_transfer(HandleXum1541, XUM1541_ENTER_BOOTLOADER) == 0) {
         fprintf(stderr, "Success. xum1541 now in bootloader mode.\n");
         fprintf(stderr, "Run your firmware update program now.\n");
     } else {

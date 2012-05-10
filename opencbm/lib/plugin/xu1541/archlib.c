@@ -98,7 +98,7 @@ opencbm_plugin_driver_open(CBM_FILE *HandleDevice, const char * const Port)
 {
     UNREFERENCED_PARAMETER(Port);
 
-    return xu1541_init();
+    return xu1541_init((struct xu1541_usb_handle **)HandleDevice);
 }
 
 /*! \brief Closes the driver
@@ -118,7 +118,7 @@ opencbm_plugin_driver_open(CBM_FILE *HandleDevice, const char * const Port)
 void CBMAPIDECL
 opencbm_plugin_driver_close(CBM_FILE HandleDevice)
 {
-    xu1541_close();
+    xu1541_close((struct xu1541_usb_handle *)HandleDevice);
 }
 
 
@@ -200,7 +200,7 @@ opencbm_plugin_unlock(CBM_FILE HandleDevice)
 int CBMAPIDECL
 opencbm_plugin_raw_write(CBM_FILE HandleDevice, const void *Buffer, size_t Count)
 {
-    return xu1541_write(Buffer, Count);
+    return xu1541_write((struct xu1541_usb_handle *)HandleDevice, Buffer, Count);
 }
 
 /*! \brief Read data from the IEC serial bus
@@ -229,7 +229,7 @@ opencbm_plugin_raw_write(CBM_FILE HandleDevice, const void *Buffer, size_t Count
 int CBMAPIDECL
 opencbm_plugin_raw_read(CBM_FILE HandleDevice, void *Buffer, size_t Count)
 {
-    return xu1541_read(Buffer, Count);
+    return xu1541_read((struct xu1541_usb_handle *)HandleDevice, Buffer, Count);
 }
 
 
@@ -260,7 +260,7 @@ opencbm_plugin_raw_read(CBM_FILE HandleDevice, void *Buffer, size_t Count)
 int CBMAPIDECL
 opencbm_plugin_listen(CBM_FILE HandleDevice, __u_char DeviceAddress, __u_char SecondaryAddress)
 {
-    return xu1541_ioctl(XU1541_LISTEN, DeviceAddress, SecondaryAddress);
+    return xu1541_ioctl((struct xu1541_usb_handle *)HandleDevice, XU1541_LISTEN, DeviceAddress, SecondaryAddress);
 }
 
 /*! \brief Send a TALK on the IEC serial bus
@@ -289,7 +289,7 @@ opencbm_plugin_listen(CBM_FILE HandleDevice, __u_char DeviceAddress, __u_char Se
 int CBMAPIDECL
 opencbm_plugin_talk(CBM_FILE HandleDevice, __u_char DeviceAddress, __u_char SecondaryAddress)
 {
-    return xu1541_ioctl(XU1541_TALK, DeviceAddress, SecondaryAddress);
+    return xu1541_ioctl((struct xu1541_usb_handle *)HandleDevice, XU1541_TALK, DeviceAddress, SecondaryAddress);
 }
 
 /*! \brief Open a file on the IEC serial bus
@@ -316,7 +316,7 @@ opencbm_plugin_talk(CBM_FILE HandleDevice, __u_char DeviceAddress, __u_char Seco
 int CBMAPIDECL
 opencbm_plugin_open(CBM_FILE HandleDevice, __u_char DeviceAddress, __u_char SecondaryAddress)
 {
-    return xu1541_ioctl(XU1541_OPEN, DeviceAddress, SecondaryAddress);
+    return xu1541_ioctl((struct xu1541_usb_handle *)HandleDevice, XU1541_OPEN, DeviceAddress, SecondaryAddress);
 }
 
 /*! \brief Close a file on the IEC serial bus
@@ -343,7 +343,7 @@ opencbm_plugin_open(CBM_FILE HandleDevice, __u_char DeviceAddress, __u_char Seco
 int CBMAPIDECL
 opencbm_plugin_close(CBM_FILE HandleDevice, __u_char DeviceAddress, __u_char SecondaryAddress)
 {
-    return xu1541_ioctl(XU1541_CLOSE, DeviceAddress, SecondaryAddress);
+    return xu1541_ioctl((struct xu1541_usb_handle *)HandleDevice, XU1541_CLOSE, DeviceAddress, SecondaryAddress);
 }
 
 /*! \brief Send an UNLISTEN on the IEC serial bus
@@ -369,7 +369,7 @@ opencbm_plugin_close(CBM_FILE HandleDevice, __u_char DeviceAddress, __u_char Sec
 int CBMAPIDECL
 opencbm_plugin_unlisten(CBM_FILE HandleDevice)
 {
-    return xu1541_ioctl(XU1541_UNLISTEN, 0, 0);
+    return xu1541_ioctl((struct xu1541_usb_handle *)HandleDevice, XU1541_UNLISTEN, 0, 0);
 }
 
 /*! \brief Send an UNTALK on the IEC serial bus
@@ -395,7 +395,7 @@ opencbm_plugin_unlisten(CBM_FILE HandleDevice)
 int CBMAPIDECL
 opencbm_plugin_untalk(CBM_FILE HandleDevice)
 {
-    return xu1541_ioctl(XU1541_UNTALK, 0, 0);
+    return xu1541_ioctl((struct xu1541_usb_handle *)HandleDevice, XU1541_UNTALK, 0, 0);
 }
 
 
@@ -422,7 +422,7 @@ opencbm_plugin_untalk(CBM_FILE HandleDevice)
 int CBMAPIDECL
 opencbm_plugin_get_eoi(CBM_FILE HandleDevice)
 {
-    return xu1541_ioctl(XU1541_GET_EOI, 0, 0);
+    return xu1541_ioctl((struct xu1541_usb_handle *)HandleDevice, XU1541_GET_EOI, 0, 0);
 }
 
 /*! \brief Reset the EOI flag
@@ -443,7 +443,7 @@ opencbm_plugin_get_eoi(CBM_FILE HandleDevice)
 int CBMAPIDECL
 opencbm_plugin_clear_eoi(CBM_FILE HandleDevice)
 {
-    return xu1541_ioctl(XU1541_CLEAR_EOI, 0, 0);
+    return xu1541_ioctl((struct xu1541_usb_handle *)HandleDevice, XU1541_CLEAR_EOI, 0, 0);
 }
 
 /*! \brief RESET all devices
@@ -470,7 +470,7 @@ opencbm_plugin_clear_eoi(CBM_FILE HandleDevice)
 int CBMAPIDECL
 opencbm_plugin_reset(CBM_FILE HandleDevice)
 {
-    return xu1541_ioctl(XU1541_RESET, 0, 0);
+    return xu1541_ioctl((struct xu1541_usb_handle *)HandleDevice, XU1541_RESET, 0, 0);
 }
 
 
@@ -501,7 +501,7 @@ opencbm_plugin_reset(CBM_FILE HandleDevice)
 __u_char CBMAPIDECL
 opencbm_plugin_pp_read(CBM_FILE HandleDevice)
 {
-    return (__u_char) xu1541_ioctl(XU1541_PP_READ, 0, 0);
+    return (__u_char) xu1541_ioctl((struct xu1541_usb_handle *)HandleDevice, XU1541_PP_READ, 0, 0);
 }
 
 /*! \brief Write a byte to a XP1541/XP1571 cable
@@ -530,7 +530,7 @@ opencbm_plugin_pp_read(CBM_FILE HandleDevice)
 void CBMAPIDECL
 opencbm_plugin_pp_write(CBM_FILE HandleDevice, __u_char Byte)
 {
-    xu1541_ioctl(XU1541_PP_WRITE, Byte, 0);
+    xu1541_ioctl((struct xu1541_usb_handle *)HandleDevice, XU1541_PP_WRITE, Byte, 0);
 }
 
 /*! \brief Read status of all bus lines.
@@ -557,7 +557,7 @@ opencbm_plugin_pp_write(CBM_FILE HandleDevice, __u_char Byte)
 int CBMAPIDECL
 opencbm_plugin_iec_poll(CBM_FILE HandleDevice)
 {
-    return xu1541_ioctl(XU1541_IEC_POLL, 0, 0);
+    return xu1541_ioctl((struct xu1541_usb_handle *)HandleDevice, XU1541_IEC_POLL, 0, 0);
 }
 
 
@@ -582,7 +582,7 @@ opencbm_plugin_iec_poll(CBM_FILE HandleDevice)
 void CBMAPIDECL
 opencbm_plugin_iec_set(CBM_FILE HandleDevice, int Line)
 {
-    xu1541_ioctl(XU1541_IEC_SETRELEASE, Line, 0);
+    xu1541_ioctl((struct xu1541_usb_handle *)HandleDevice, XU1541_IEC_SETRELEASE, Line, 0);
 }
 
 /*! \brief Deactivate a line on the IEC serial bus
@@ -606,7 +606,7 @@ opencbm_plugin_iec_set(CBM_FILE HandleDevice, int Line)
 void CBMAPIDECL
 opencbm_plugin_iec_release(CBM_FILE HandleDevice, int Line)
 {
-    xu1541_ioctl(XU1541_IEC_SETRELEASE, 0, Line);
+    xu1541_ioctl((struct xu1541_usb_handle *)HandleDevice, XU1541_IEC_SETRELEASE, 0, Line);
 }
 
 /*! \brief Activate and deactive a line on the IEC serial bus
@@ -639,7 +639,7 @@ opencbm_plugin_iec_release(CBM_FILE HandleDevice, int Line)
 void CBMAPIDECL
 opencbm_plugin_iec_setrelease(CBM_FILE HandleDevice, int Set, int Release)
 {
-    xu1541_ioctl(XU1541_IEC_SETRELEASE, Set, Release);
+    xu1541_ioctl((struct xu1541_usb_handle *)HandleDevice, XU1541_IEC_SETRELEASE, Set, Release);
 }
 
 /*! \brief Wait for a line to have a specific state
@@ -671,6 +671,6 @@ opencbm_plugin_iec_setrelease(CBM_FILE HandleDevice, int Set, int Release)
 int CBMAPIDECL
 opencbm_plugin_iec_wait(CBM_FILE HandleDevice, int Line, int State)
 {
-    return xu1541_ioctl(XU1541_IEC_WAIT, Line, State);
+    return xu1541_ioctl((struct xu1541_usb_handle *)HandleDevice, XU1541_IEC_WAIT, Line, State);
 }
 

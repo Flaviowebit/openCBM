@@ -70,7 +70,7 @@
 int CBMAPIDECL
 opencbm_plugin_s1_read_n(CBM_FILE HandleDevice, unsigned char *data, unsigned int size)
 {
-    return xum1541_read((usb_dev_handle *)HandleDevice, XUM1541_S1, data, size);
+    return xum1541_read((struct xum1541_usb_handle *)HandleDevice, XUM1541_S1, data, size);
 }
 
 /*! \brief Write data with serial1 protocol
@@ -91,7 +91,7 @@ opencbm_plugin_s1_read_n(CBM_FILE HandleDevice, unsigned char *data, unsigned in
 int CBMAPIDECL
 opencbm_plugin_s1_write_n(CBM_FILE HandleDevice, const unsigned char *data, unsigned int size)
 {
-    return xum1541_write((usb_dev_handle *)HandleDevice, XUM1541_S1, data, size);
+    return xum1541_write((struct xum1541_usb_handle *)HandleDevice, XUM1541_S1, data, size);
 }
 
 /*! \brief Read data with serial2 protocol
@@ -112,7 +112,7 @@ opencbm_plugin_s1_write_n(CBM_FILE HandleDevice, const unsigned char *data, unsi
 int CBMAPIDECL
 opencbm_plugin_s2_read_n(CBM_FILE HandleDevice, unsigned char *data, unsigned int size)
 {
-    return xum1541_read((usb_dev_handle *)HandleDevice, XUM1541_S2, data, size);
+    return xum1541_read((struct xum1541_usb_handle *)HandleDevice, XUM1541_S2, data, size);
 }
 
 /*! \brief Write data with serial2 protocol
@@ -133,7 +133,7 @@ opencbm_plugin_s2_read_n(CBM_FILE HandleDevice, unsigned char *data, unsigned in
 int CBMAPIDECL
 opencbm_plugin_s2_write_n(CBM_FILE HandleDevice, const unsigned char *data, unsigned int size)
 {
-    return xum1541_write((usb_dev_handle *)HandleDevice, XUM1541_S2, data, size);
+    return xum1541_write((struct xum1541_usb_handle *)HandleDevice, XUM1541_S2, data, size);
 }
 
 /*! \brief Read data with parallel protocol (d64copy)
@@ -154,7 +154,7 @@ opencbm_plugin_s2_write_n(CBM_FILE HandleDevice, const unsigned char *data, unsi
 int CBMAPIDECL
 opencbm_plugin_pp_dc_read_n(CBM_FILE HandleDevice, unsigned char *data, unsigned int size)
 {
-    return xum1541_read((usb_dev_handle *)HandleDevice, XUM1541_PP, data, size);
+    return xum1541_read((struct xum1541_usb_handle *)HandleDevice, XUM1541_PP, data, size);
 }
 
 /*! \brief Write data with parallel protocol (d64copy)
@@ -175,7 +175,7 @@ opencbm_plugin_pp_dc_read_n(CBM_FILE HandleDevice, unsigned char *data, unsigned
 int CBMAPIDECL
 opencbm_plugin_pp_dc_write_n(CBM_FILE HandleDevice, const unsigned char *data, unsigned int size)
 {
-    return xum1541_write((usb_dev_handle *)HandleDevice, XUM1541_PP, data, size);
+    return xum1541_write((struct xum1541_usb_handle *)HandleDevice, XUM1541_PP, data, size);
 }
 
 /*! \brief Read data with parallel protocol (cbmcopy)
@@ -196,7 +196,7 @@ opencbm_plugin_pp_dc_write_n(CBM_FILE HandleDevice, const unsigned char *data, u
 int CBMAPIDECL
 opencbm_plugin_pp_cc_read_n(CBM_FILE HandleDevice, unsigned char *data, unsigned int size)
 {
-    return xum1541_read((usb_dev_handle *)HandleDevice, XUM1541_P2, data, size);
+    return xum1541_read((struct xum1541_usb_handle *)HandleDevice, XUM1541_P2, data, size);
 }
 
 /*! \brief Write data with parallel protocol (cbmcopy)
@@ -217,7 +217,7 @@ opencbm_plugin_pp_cc_read_n(CBM_FILE HandleDevice, unsigned char *data, unsigned
 int CBMAPIDECL
 opencbm_plugin_pp_cc_write_n(CBM_FILE HandleDevice, const unsigned char *data, unsigned int size)
 {
-    return xum1541_write((usb_dev_handle *)HandleDevice, XUM1541_P2, data, size);
+    return xum1541_write((struct xum1541_usb_handle *)HandleDevice, XUM1541_P2, data, size);
 }
 
 /*! \brief Read data with burst nibbler protocol (cbmcopy)
@@ -238,7 +238,7 @@ opencbm_plugin_pp_cc_write_n(CBM_FILE HandleDevice, const unsigned char *data, u
 int CBMAPIDECL
 opencbm_plugin_nib_read_n(CBM_FILE HandleDevice, unsigned char *data, unsigned int size)
 {
-    return xum1541_read((usb_dev_handle *)HandleDevice, XUM1541_NIB, data, size);
+    return xum1541_read((struct xum1541_usb_handle *)HandleDevice, XUM1541_NIB, data, size);
 }
 
 /*! \brief Write data with burst nibbler protocol (cbmcopy)
@@ -259,5 +259,5 @@ opencbm_plugin_nib_read_n(CBM_FILE HandleDevice, unsigned char *data, unsigned i
 int CBMAPIDECL
 opencbm_plugin_nib_write_n(CBM_FILE HandleDevice, const unsigned char *data, unsigned int size)
 {
-    return xum1541_write((usb_dev_handle *)HandleDevice, XUM1541_NIB, data, size);
+    return xum1541_write((struct xum1541_usb_handle *)HandleDevice, XUM1541_NIB, data, size);
 }

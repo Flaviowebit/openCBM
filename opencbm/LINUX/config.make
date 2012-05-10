@@ -49,9 +49,9 @@ XUM1541DIR  = $(RELATIVEPATH)/../xum1541
 #
 # Where to find libusb (libusb.sf.net)
 #
-LIBUSB_CFLAGS  = -I/usr/include
+LIBUSB_CFLAGS  = $(shell pkg-config --cflags libusb-1.0)
 LIBUSB_LDFLAGS =
-LIBUSB_LIBS    = -L/usr/lib -lusb
+LIBUSB_LIBS    = $(shell pkg-config --libs libusb-1.0)
 
 #
 # define os name
@@ -115,11 +115,10 @@ ifeq "$(OS)" "Darwin"
 PREFIX = /opt/opencbm
 OPENCBM_CONFIG_PATH = $(PREFIX)/etc
 
-# use MacPort's libusb-legacy for now
-LIBUSB_CONFIG  = /opt/local/bin/libusb-legacy-config
-LIBUSB_CFLAGS  = $(shell $(LIBUSB_CONFIG) --cflags)
+# use libusb-1.0 in /usr/local for now
+LIBUSB_CFLAGS  = -I/usr/local/include/libusb-1.0
 LIBUSB_LDFLAGS =
-LIBUSB_LIBS    = $(shell $(LIBUSB_CONFIG) --libs)
+LIBUSB_LIBS    = -L/usr/local/lib -lusb-1.0
 
 OD_FLAGS  = -txC -v -An
 SHLIB_EXT = dylib
@@ -133,6 +132,7 @@ endif
 #
 ifeq "$(OS)" "FreeBSD"
 OD_FLAGS  = -txC -v -An
+LIBUSB_LIBS    = -L/usr/local/lib -lusb
 endif
 
 #

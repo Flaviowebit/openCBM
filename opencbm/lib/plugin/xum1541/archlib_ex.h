@@ -14,6 +14,6 @@
 #include "archlib.h"
 
 EXTERN int CBMAPIDECL
-xum1541_plugin_control_msg(CBM_FILE HandleDevice, unsigned int cmd);
+xum1541_plugin_control_transfer(CBM_FILE HandleDevice, unsigned int cmd);
 
 #endif // #ifndef ARCHLIB_EX_H

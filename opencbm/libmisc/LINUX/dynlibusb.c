@@ -13,8 +13,7 @@
 ** \author Spiro Trikaliotis \n
 ** \version $Id: dynlibusb.c,v 1.4 2010-08-15 09:01:54 wmsr Exp $ \n
 ** \n
-** \brief Allow for libusb (0.1) to be loaded dynamically
-**        (Currently, this is used on Windows only)
+** \brief Allow for libusb (1.0) to be loaded dynamically
 ****************************************************************/
 
 #include <stdio.h>
@@ -31,21 +30,24 @@
 
 usb_dll_t usb = {
     .shared_object_handle = NULL,
-    .open = usb_open, 
-    .close = usb_close, 
-    .bulk_write = usb_bulk_write,
-    .bulk_read = usb_bulk_read,
-    .control_msg = usb_control_msg,
-    .set_configuration = usb_set_configuration,
-    .claim_interface = usb_claim_interface,
-    .release_interface = usb_release_interface,
-    .clear_halt = usb_clear_halt,
-    .strerror = usb_strerror, 
-    .init = usb_init, 
-    .find_busses = usb_find_busses, 
-    .find_devices = usb_find_devices, 
-    .device = usb_device,
-    .get_busses = usb_get_busses
+    .open = libusb_open,
+    .close = libusb_close,
+    .bulk_transfer = libusb_bulk_transfer,
+    .control_transfer = libusb_control_transfer,
+    .set_configuration = libusb_set_configuration,
+    .claim_interface = libusb_claim_interface,
+    .release_interface = libusb_release_interface,
+    .clear_halt = libusb_clear_halt,
+    .error_name = libusb_error_name,
+    .init = libusb_init,
+    .exit = libusb_exit,
+    .get_device_descriptor = libusb_get_device_descriptor,
+    .get_string_descriptor_ascii = libusb_get_string_descriptor_ascii,
+    .get_device = libusb_get_device,
+    .get_device_list = libusb_get_device_list,
+    .free_device_list = libusb_free_device_list,
+    .get_bus_number = libusb_get_bus_number,
+    .get_device_address = libusb_get_device_address,
 };
 
 int dynlibusb_init(void) {

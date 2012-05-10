@@ -13,8 +13,7 @@
 ** \author Spiro Trikaliotis \n
 ** \version $Id: dynlibusb.c,v 1.3 2010-08-15 09:01:54 wmsr Exp $ \n
 ** \n
-** \brief Allow for libusb (0.1) to be loaded dynamically
-**        (Currently, this is used on Windows only)
+** \brief Allow for libusb (1.0) to be loaded dynamically
 ****************************************************************/
 
 #include <stdio.h>
@@ -35,13 +34,13 @@ int dynlibusb_init(void) {
     int error = 1;
 
     do {
-        usb.shared_object_handle = plugin_load("libusb0.dll");
+        usb.shared_object_handle = plugin_load("libusb-1.0.dll");
         if ( ! usb.shared_object_handle ) {
             break;
         }
 
 #define READ(_x) \
-    usb._x = plugin_get_address(usb.shared_object_handle, "usb_" ## #_x); \
+    usb._x = plugin_get_address(usb.shared_object_handle, "libusb_" ## #_x); \
     if (usb._x == NULL) { \
         break; \
     }
@@ -52,11 +51,10 @@ int dynlibusb_init(void) {
 //        READ(get_string_simple);
 //        READ(get_descriptor_by_endpoint);
 //        READ(get_descriptor);
-        READ(bulk_write);
-        READ(bulk_read);
+        READ(bulk_transfer);
 //        READ(interrupt_write);
 //        READ(interrupt_read);
-        READ(control_msg);
+        READ(control_transfer);
         READ(set_configuration);
         READ(claim_interface);
         READ(release_interface);
@@ -64,13 +62,15 @@ int dynlibusb_init(void) {
 //        READ(resetep);
         READ(clear_halt);
 //        READ(reset);
-        READ(strerror);
+        READ(error_name);
         READ(init);
+        READ(exit);
 //        READ(set_debug);
-        READ(find_busses);
-        READ(find_devices);
-        READ(device);
-        READ(get_busses);
+        READ(get_device);
+        READ(get_device_list);
+        READ(free_device_list);
+        READ(get_bus_number);
+        READ(get_device_address);
 
         error = 0;
     } while (0);

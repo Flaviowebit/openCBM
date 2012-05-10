@@ -69,61 +69,9 @@ xum1541_dbg(int level, char *msg, ...)
     }
 }
 
-/*! \internal \brief Get a char* string from the device's Unicode descriptors
-    Some data will be lost in this conversion, but we are ok with that.
-
- \param dev
-    libusb device handle
-
- \param index
-    Descriptor string index
-
- \param langid
-    Language code
-
- \param buf
-    Where to store the string. The result is nul-terminated.
-
- \param buflen
-    Length of the output buffer.
-
- \return
-    Returns the length of the string read or 0 on error.
-*/
-static int
-usbGetStringAscii(usb_dev_handle *dev, int index, int langid,
-    char *buf, int buflen)
-{
-    char buffer[256];
-    int rval, i;
-
-    rval = usb.control_msg(dev, USB_ENDPOINT_IN, USB_REQ_GET_DESCRIPTOR,
-        (USB_DT_STRING << 8) + index, langid,
-        buffer, sizeof(buffer), 1000);
-    if (rval < 0)
-        return rval;
-
-    if (buffer[1] != USB_DT_STRING)
-        return 0;
-    if ((unsigned char)buffer[0] < rval)
-        rval = (unsigned char)buffer[0];
-
-    rval /= 2;
-    /* lossy conversion to ISO Latin1 */
-    for (i = 1; i < rval; i++) {
-        if (i > buflen)  /* destination buffer overflow */
-            break;
-        buf[i-1] = buffer[2 * i];
-        if (buffer[2 * i + 1] != 0)  /* outside of ISO Latin1 range */
-            buf[i-1] = '?';
-    }
-    buf[i-1] = 0;
-    return i - 1;
-}
-
 // Cleanup after a failure
 static void
-xum1541_cleanup(usb_dev_handle **HandleXum1541, char *msg, ...)
+xum1541_cleanup(libusb_device_handle *HandleXum1541, char *msg, ...)
 {
     va_list args;
 
@@ -132,21 +80,25 @@ xum1541_cleanup(usb_dev_handle **HandleXum1541, char *msg, ...)
         fprintf(stderr, msg, args);
         va_end(args);
     }
-    if (*HandleXum1541 != NULL)
-        usb.close(*HandleXum1541);
-    *HandleXum1541 = NULL;
+    if (HandleXum1541 != NULL)
+        usb.close(HandleXum1541);
 }
 
 // USB bus enumeration
 static void
-xum1541_enumerate(usb_dev_handle **HandleXum1541, int PortNumber)
+xum1541_enumerate(struct xum1541_usb_handle *uh, int PortNumber)
 {
     static char xumProduct[] = "xum1541"; // Start of USB product string id
     static int prodLen = sizeof(xumProduct) - 1;
-    struct usb_bus *bus;
-    struct usb_device *dev, *preferredDefaultHandle;
-    char string[256];
+    unsigned char string[256];
     int len, serialnum, leastserial;
+    libusb_device **list;
+    libusb_device_handle *found = NULL;
+    libusb_device *preferredDefaultHandle = NULL;
+    struct libusb_device_descriptor descriptor;
+    ssize_t cnt;
+    ssize_t i = 0;
+    int err = 0;
 
     if (PortNumber < 0 || PortNumber > MAX_ALLOWED_XUM1541_SERIALNUM) {
         // Normalise the Portnumber for invalid values
@@ -155,91 +107,96 @@ xum1541_enumerate(usb_dev_handle **HandleXum1541, int PortNumber)
 
     xum1541_dbg(0, "scanning usb ...");
 
-    usb.init();
-    usb.find_busses();
-    usb.find_devices();
-
-    /* usb.find_devices sets errno if some devices don't reply 100% correct. */
-    /* make lib ignore this as this has nothing to do with our device */
-    errno = 0;
-
-    *HandleXum1541 = NULL;
-    preferredDefaultHandle = NULL;
+    // discover devices
+    uh->devh = NULL;
     leastserial = MAX_ALLOWED_XUM1541_SERIALNUM + 1;
-    for (bus = usb.get_busses(); !*HandleXum1541 && bus; bus = bus->next) {
-        xum1541_dbg(1, "scanning bus %s", bus->dirname);
-        for (dev = bus->devices; !*HandleXum1541 && dev; dev = dev->next) {
-            xum1541_dbg(1, "device %04x:%04x at %s",
-                dev->descriptor.idVendor, dev->descriptor.idProduct,
-                dev->filename);
 
-            // First, find our vendor and product id
-            if (dev->descriptor.idVendor != XUM1541_VID ||
-                dev->descriptor.idProduct != XUM1541_PID)
-                continue;
-
-            xum1541_dbg(0, "found xu/xum1541 version %04x on bus %s, device %s",
-                dev->descriptor.bcdDevice, bus->dirname, dev->filename);
-            if ((*HandleXum1541 = usb.open(dev)) == NULL) {
-                fprintf(stderr, "error: Cannot open USB device: %s\n",
-                    usb.strerror());
-                continue;
-            }
-
-            // Get device product name and try to match against "xum1541".
-            // If no match, it could be an xum1541 so don't report an error.
-            len = usbGetStringAscii(*HandleXum1541, dev->descriptor.iProduct,
-                0x0409, string, sizeof(string) - 1);
-            if (len < 0) {
-                xum1541_cleanup(HandleXum1541,
-                    "error: cannot query product name: %s\n", usb.strerror());
-                continue;
-            }
-            string[len] = '\0';
-            if (len < prodLen || strstr(string, xumProduct) == NULL) {
-                xum1541_cleanup(HandleXum1541, NULL);
-                continue;
-            }
-            xum1541_dbg(0, "xum1541 name: %s", string);
-
-            len = usbGetStringAscii(*HandleXum1541,
-                dev->descriptor.iSerialNumber, 0x0409,
-                string, sizeof(string) - 1);
-            if (len < 0 && PortNumber != 0){
-                // we need the serial number, when PortNumber is not 0
-                xum1541_cleanup(HandleXum1541,
-                    "error: cannot query serial number: %s\n",
-                    usb.strerror());
-                continue;
-            }
-            serialnum = 0;
-            if (len > 0 && len <=3 ) {
-                string[len] = '\0';
-                serialnum = atoi(string);
-            }
-            if (PortNumber != serialnum) {
-                // keep in mind the handle, if the device's
-                // serial number is less than previous ones
-                if(serialnum < leastserial) {
-                    leastserial = serialnum;
-                    preferredDefaultHandle = dev;
-                }
-                xum1541_cleanup(HandleXum1541, NULL);
-                continue;
-            }
-
-            xum1541_dbg(0, "xum1541 serial number: %3u", serialnum);
-            return;
-        }
+    cnt = usb.get_device_list(uh->ctx, &list);
+    if (cnt < 0)
+    {
+        xum1541_dbg(0, "enumeration error: %s", usb.error_name(cnt));
+        return;
     }
+
+    for (i = 0; i < cnt; i++)
+    {
+        libusb_device *device = list[i];
+        if (LIBUSB_SUCCESS != usb.get_device_descriptor(device, &descriptor))
+            continue;
+
+        xum1541_dbg(1, "device %04x:%04x", descriptor.idVendor, descriptor.idProduct);
+
+        // First, find our vendor and product id
+        if (descriptor.idVendor != XUM1541_VID || descriptor.idProduct != XUM1541_PID)
+            continue;
+
+        xum1541_dbg(0, "found xu/xum1541 version %04x on bus %d, device %d",
+            descriptor.bcdDevice, usb.get_bus_number(device),
+            usb.get_device_address(device));
+
+        err = usb.open(device, &found);
+        if (LIBUSB_SUCCESS != err) {
+            fprintf(stderr, "error: Cannot open USB device: %s\n",
+               usb.error_name(err));
+            continue;
+        }
+
+        // Get device product name and try to match against "xum1541".
+        // If no match, it could be an xum1541 so don't report an error.
+        len = usb.get_string_descriptor_ascii(found, descriptor.iProduct,
+            string, sizeof(string) - 1);
+        if (len < 0) {
+            xum1541_cleanup(found, "error: cannot query product name: %s\n",
+                usb.error_name(len));
+            continue;
+        }
+
+        string[len] = '\0';
+        if (len < prodLen || strstr((char *)string, xumProduct) == NULL) {
+            xum1541_cleanup(found, NULL);
+            continue;
+        }
+        xum1541_dbg(0, "xum1541 name: %s", string);
+
+        len = usb.get_string_descriptor_ascii(found, descriptor.iSerialNumber,
+            string, sizeof(string) - 1);
+        if (len < 0 && PortNumber != 0) {
+            // we need the serial number, when PortNumber is not 0
+            xum1541_cleanup(found, "error: cannot query serial number: %s\n",
+            usb.error_name(len));
+            continue;
+        }
+
+        serialnum = 0;
+        if (len > 0 && len <= 3) {
+            string[len] = '\0';
+            serialnum = atoi((char *)string);
+        }
+
+        if (PortNumber == serialnum) {
+            xum1541_dbg(0, "xum1541 serial number: %3u", serialnum);
+            uh->devh = found;
+            break;
+        }
+
+        // keep in mind the handle, if the device's
+        // serial number is less than previous ones
+        if(serialnum < leastserial) {
+            leastserial = serialnum;
+            preferredDefaultHandle = device;
+        }
+        xum1541_cleanup(found, NULL);
+    }
+
     // if no default device was found because only specific devices were present,
     // determine the default device from the specific ones and open it
-    if(preferredDefaultHandle != NULL) {
-        if ((*HandleXum1541 = usb.open(preferredDefaultHandle)) == NULL) {
-            fprintf(stderr, "error: Cannot reopen USB device: %s\n",
-                usb.strerror());
-        }
+    if (NULL == uh->devh && preferredDefaultHandle != NULL) {
+        err = usb.open(preferredDefaultHandle, &uh->devh);
+        if (LIBUSB_SUCCESS != err)
+            fprintf(stderr, "error: Cannot open USB device: %s\n", usb.error_name(err));
     }
+
+    usb.free_device_list(list, 1);
 }
 
 // Check for a firmware version compatible with this plugin
@@ -281,67 +238,42 @@ xum1541_check_version(int version)
 const char *
 xum1541_device_path(int PortNumber)
 {
-#define PREFIX_OFFSET   (sizeof("libusb/xum1541:") - 1)
-    usb_dev_handle *HandleXum1541;
-    static char dev_path[PREFIX_OFFSET + LIBUSB_PATH_MAX] = "libusb/xum1541:";
+    struct xum1541_usb_handle uh;
+    static char dev_path[sizeof(XUM1541_PREFIX) + 3 + 1 + 3 + 1];
 
-    dev_path[PREFIX_OFFSET + 1] = '\0';
-    xum1541_enumerate(&HandleXum1541, PortNumber);
-
-    if (HandleXum1541 != NULL) {
-        strcpy(dev_path, (usb.device(HandleXum1541))->filename);
-        xum1541_close(HandleXum1541);
+    usb.init(&uh.ctx);
+    xum1541_enumerate(&uh, PortNumber);
+    if (uh.devh != NULL) {
+        snprintf(dev_path, sizeof(dev_path), XUM1541_PREFIX "%d/%d",
+            usb.get_bus_number(usb.get_device(uh.devh)),
+            usb.get_device_address(usb.get_device(uh.devh)));
+        xum1541_close(&uh);
     } else {
+        snprintf(dev_path, sizeof(dev_path), XUM1541_PREFIX);
         fprintf(stderr, "error: no xum1541 device found\n");
     }
+    usb.exit(uh.ctx);
 
     return dev_path;
 }
-#undef PREFIX_OFFSET
 
 static int
-xum1541_clear_halt(usb_dev_handle *handle)
+xum1541_clear_halt(libusb_device_handle *devh)
 {
     int ret;
 
-    ret = usb.clear_halt(handle, XUM_BULK_IN_ENDPOINT | USB_ENDPOINT_IN);
+    ret = usb.clear_halt(devh, XUM_BULK_IN_ENDPOINT | LIBUSB_ENDPOINT_IN);
     if (ret != 0) {
         fprintf(stderr, "USB clear halt request failed for in ep: %s\n",
-            usb.strerror());
+            usb.error_name(ret));
         return -1;
     }
-    ret = usb.clear_halt(handle, XUM_BULK_OUT_ENDPOINT);
+    ret = usb.clear_halt(devh, XUM_BULK_OUT_ENDPOINT);
     if (ret != 0) {
         fprintf(stderr, "USB clear halt request failed for out ep: %s\n",
-            usb.strerror());
+            usb.error_name(ret));
         return -1;
     }
-
-#ifdef __APPLE__
-    /*
-     * The Darwin libusb implementation calls ClearPipeStall() in
-     * usb_clear_halt(). While that clears the host data toggle and resets
-     * its endpoint, it does not send the CLEAR_FEATURE(halt) control
-     * request to the device. The ClearPipeStallBothEnds() function does
-     * do this.
-     *
-     * We manually send this control request here on Mac systems.
-     */
-    ret = usb.control_msg(handle, USB_RECIP_ENDPOINT, USB_REQ_CLEAR_FEATURE,
-        0, XUM_BULK_IN_ENDPOINT | USB_ENDPOINT_IN, NULL, 0, USB_TIMEOUT);
-    if (ret != 0) {
-        fprintf(stderr, "USB clear control req failed for in ep: %s\n",
-            usb.strerror());
-        return -1;
-    }
-    ret = usb.control_msg(handle, USB_RECIP_ENDPOINT, USB_REQ_CLEAR_FEATURE,
-        0, XUM_BULK_OUT_ENDPOINT, NULL, 0, USB_TIMEOUT);
-    if (ret != 0) {
-        fprintf(stderr, "USB clear control req failed for out ep: %s\n",
-            usb.strerror());
-        return -1;
-    }
-#endif // __APPLE__
 
     return 0;
 }
@@ -366,22 +298,33 @@ xum1541_clear_halt(usb_dev_handle *handle)
     with it.
 */
 int
-xum1541_init(usb_dev_handle **HandleXum1541, int PortNumber)
+xum1541_init(struct xum1541_usb_handle **uhp, int PortNumber)
 {
     unsigned char devInfo[XUM_DEVINFO_SIZE], devStatus;
-    int len;
+    int len, ret;
+    struct xum1541_usb_handle *uh;
 
-    xum1541_enumerate(HandleXum1541, PortNumber);
+    *uhp = uh = malloc(sizeof(struct xum1541_usb_handle));
+    if (NULL == uh) {
+        perror("malloc");
+        return -1;
+    }
 
-    if (*HandleXum1541 == NULL) {
+    usb.init(&uh->ctx);
+    xum1541_enumerate(uh, PortNumber);
+
+    if (uh->devh == NULL) {
         fprintf(stderr, "error: no xum1541 device found\n");
+        usb.exit(uh->ctx);
+        free(uh);
         return -1;
     }
 
     // Select first and only device configuration.
-    if (usb.set_configuration(*HandleXum1541, 1) != 0) {
-        xum1541_cleanup(HandleXum1541, "USB error: %s\n", usb.strerror());
-        return -1;
+    ret = usb.set_configuration(uh->devh, 1);
+    if (ret != LIBUSB_SUCCESS) {
+        xum1541_cleanup(uh->devh, "USB error: %s\n", usb.error_name(ret));
+        goto error_close;
     }
 
     /*
@@ -389,42 +332,43 @@ xum1541_init(usb_dev_handle **HandleXum1541, int PortNumber)
      * After this point, do cleanup using xum1541_close() instead of
      * xum1541_cleanup().
      */
-    if (usb.claim_interface(*HandleXum1541, 0) != 0) {
-        xum1541_cleanup(HandleXum1541, "USB error: %s\n", usb.strerror());
-        return -1;
+    ret = usb.claim_interface(uh->devh, 0);
+    if (ret != LIBUSB_SUCCESS) {
+        xum1541_cleanup(uh->devh, "USB error: %s\n", usb.error_name(ret));
+        goto error_close;
     }
 
     // Check the basic device info message for firmware version
     memset(devInfo, 0, sizeof(devInfo));
-    len = usb.control_msg(*HandleXum1541, USB_TYPE_CLASS | USB_ENDPOINT_IN,
-        XUM1541_INIT, 0, 0, (char*)devInfo, sizeof(devInfo), USB_TIMEOUT);
+    len = usb.control_transfer(uh->devh, LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_ENDPOINT_IN,
+        XUM1541_INIT, 0, 0, (unsigned char*)devInfo, sizeof(devInfo), USB_TIMEOUT);
     if (len < 2) {
         fprintf(stderr, "USB request for XUM1541 info failed: %s\n",
-            usb.strerror());
-        xum1541_close(*HandleXum1541);
-        return -1;
+            usb.error_name(len));
+        goto error_release;
     }
-    if (xum1541_check_version(devInfo[0]) != 0) {
-        xum1541_close(*HandleXum1541);
-        return -1;
-    }
-    if (len >= 4) {
-        xum1541_dbg(0, "device capabilities %02x status %02x",
-            devInfo[1], devInfo[2]);
-    }
+    if (xum1541_check_version(devInfo[0]) != 0)
+        goto error_release;
+    if (len >= 4)
+        xum1541_dbg(0, "device capabilities %02x status %02x", devInfo[1], devInfo[2]);
 
     // Check for the xum1541's current status. (Not the drive.)
     devStatus = devInfo[2];
     if ((devStatus & XUM1541_DOING_RESET) != 0) {
         fprintf(stderr, "previous command was interrupted, resetting\n");
         // Clear the stalls on both endpoints
-        if (xum1541_clear_halt(*HandleXum1541) < 0) {
-            xum1541_close(*HandleXum1541);
-            return -1;
-        }
+        if (xum1541_clear_halt(uh->devh) < 0)
+            goto error_release;
     }
 
     return 0;
+
+error_release:
+    usb.release_interface(uh->devh, 0);
+
+error_close:
+    xum1541_close(uh);
+    return -1;
 }
 /*! \brief close the xum1541 device
 
@@ -435,24 +379,26 @@ xum1541_init(usb_dev_handle **HandleXum1541, int PortNumber)
     This function releases the interface and closes the xum1541 handle.
 */
 void
-xum1541_close(usb_dev_handle *HandleXum1541)
+xum1541_close(struct xum1541_usb_handle *uh)
 {
     int ret;
 
     xum1541_dbg(0, "Closing USB link");
 
-    ret = usb.control_msg(HandleXum1541, USB_TYPE_CLASS | USB_ENDPOINT_OUT,
+    ret = usb.control_transfer(uh->devh, LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_ENDPOINT_OUT,
         XUM1541_SHUTDOWN, 0, 0, NULL, 0, 1000);
-    if (ret < 0) {
+    if (ret != LIBUSB_SUCCESS) {
         fprintf(stderr,
             "USB request for XUM1541 close failed, continuing: %s\n",
-            usb.strerror());
+            usb.error_name(ret));
     }
-    if (usb.release_interface(HandleXum1541, 0) != 0)
-        fprintf(stderr, "USB release intf error: %s\n", usb.strerror());
+    ret = usb.release_interface(uh->devh, 0);
+    if (ret != LIBUSB_SUCCESS)
+        fprintf(stderr, "USB release intf error: %s\n", usb.error_name(ret));
 
-    if (usb.close(HandleXum1541) != 0)
-        fprintf(stderr, "USB close error: %s\n", usb.strerror());
+    usb.close(uh->devh);
+    usb.exit(uh->ctx);
+    free(uh);
 }
 
 /*! \brief  Handle synchronous USB control messages, e.g. for RESET.
@@ -468,17 +414,17 @@ xum1541_close(usb_dev_handle *HandleXum1541)
    Returns the value the USB device sent back.
 */
 int
-xum1541_control_msg(usb_dev_handle *HandleXum1541, unsigned int cmd)
+xum1541_control_transfer(struct xum1541_usb_handle *uh, unsigned int cmd)
 {
     int nBytes;
 
     xum1541_dbg(1, "control msg %d", cmd);
 
-    nBytes = usb.control_msg(HandleXum1541, USB_TYPE_CLASS | USB_ENDPOINT_OUT,
+    nBytes = usb.control_transfer(uh->devh, LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_ENDPOINT_OUT,
         cmd, 0, 0, NULL, 0, USB_TIMEOUT);
     if (nBytes < 0) {
-        fprintf(stderr, "USB error in xum1541_control_msg: %s\n",
-            usb.strerror());
+        fprintf(stderr, "USB error in xum1541_control_transfer: %s\n",
+            usb.error_name(nBytes));
         exit(-1);
     }
 
@@ -486,7 +432,7 @@ xum1541_control_msg(usb_dev_handle *HandleXum1541, unsigned int cmd)
 }
 
 static int
-xum1541_wait_status(usb_dev_handle *HandleXum1541)
+xum1541_wait_status(libusb_device_handle *HandleXum1541)
 {
     int nBytes, deviceBusy, ret;
     unsigned char statusBuf[XUM_STATUSBUF_SIZE];
@@ -494,9 +440,10 @@ xum1541_wait_status(usb_dev_handle *HandleXum1541)
     xum1541_dbg(2, "xum1541_wait_status checking for status");
     deviceBusy = 1;
     while (deviceBusy) {
-        nBytes = usb.bulk_read(HandleXum1541,
-            XUM_BULK_IN_ENDPOINT | USB_ENDPOINT_IN,
-            (char*)statusBuf, XUM_STATUSBUF_SIZE, LIBUSB_NO_TIMEOUT);
+        nBytes = 0;
+        ret = usb.bulk_transfer(HandleXum1541,
+            XUM_BULK_IN_ENDPOINT | LIBUSB_ENDPOINT_IN,
+            (unsigned char*)statusBuf, XUM_STATUSBUF_SIZE, &nBytes, LIBUSB_NO_TIMEOUT);
         if (nBytes == XUM_STATUSBUF_SIZE) {
             switch (XUM_GET_STATUS(statusBuf)) {
             case XUM1541_IO_BUSY:
@@ -515,7 +462,7 @@ xum1541_wait_status(usb_dev_handle *HandleXum1541)
             }
         } else {
             fprintf(stderr, "USB error in xum1541_wait_status: %s\n",
-                usb.strerror());
+                usb.error_name(ret));
             exit(-1);
         }
     }
@@ -551,7 +498,7 @@ xum1541_wait_status(usb_dev_handle *HandleXum1541)
    info from the device such as the active IEC lines.
 */
 int
-xum1541_ioctl(usb_dev_handle *HandleXum1541, unsigned int cmd, unsigned int addr, unsigned int secaddr)
+xum1541_ioctl(struct xum1541_usb_handle *uh, unsigned int cmd, unsigned int addr, unsigned int secaddr)
 {
     int nBytes, ret;
     unsigned char cmdBuf[XUM_CMDBUF_SIZE];
@@ -563,17 +510,17 @@ xum1541_ioctl(usb_dev_handle *HandleXum1541, unsigned int cmd, unsigned int addr
     cmdBuf[3] = 0;
 
     // Send the 4-byte command block
-    nBytes = usb.bulk_write(HandleXum1541,
-        XUM_BULK_OUT_ENDPOINT | USB_ENDPOINT_OUT,
-        (char *)cmdBuf, sizeof(cmdBuf), LIBUSB_NO_TIMEOUT);
-    if (nBytes < 0) {
+    ret = usb.bulk_transfer(uh->devh,
+        XUM_BULK_OUT_ENDPOINT | LIBUSB_ENDPOINT_OUT,
+        (unsigned char *)cmdBuf, sizeof(cmdBuf), &nBytes, LIBUSB_NO_TIMEOUT);
+    if (ret != LIBUSB_SUCCESS) {
         fprintf(stderr, "USB error in xum1541_ioctl cmd: %s\n",
-            usb.strerror());
+            usb.error_name(ret));
         exit(-1);
     }
 
     // If we have a valid response, return extended status
-    ret = xum1541_wait_status(HandleXum1541);
+    ret = xum1541_wait_status(uh->devh);
     xum1541_dbg(2, "return val = %x", ret);
     return ret;
 }
@@ -598,7 +545,7 @@ xum1541_ioctl(usb_dev_handle *HandleXum1541, unsigned int cmd, unsigned int addr
     fatal error, returns -1.
 */
 int
-xum1541_write(usb_dev_handle *HandleXum1541, __u_char modeFlags, const __u_char *data, size_t size)
+xum1541_write(struct xum1541_usb_handle *uh, __u_char modeFlags, const __u_char *data, size_t size)
 {
     int wr, mode, ret;
     size_t bytesWritten, bytes2write;
@@ -613,12 +560,12 @@ xum1541_write(usb_dev_handle *HandleXum1541, __u_char modeFlags, const __u_char 
     cmdBuf[1] = modeFlags;
     cmdBuf[2] = size & 0xff;
     cmdBuf[3] = (size >> 8) & 0xff;
-    wr = usb.bulk_write(HandleXum1541,
-        XUM_BULK_OUT_ENDPOINT | USB_ENDPOINT_OUT,
-        (char *)cmdBuf, sizeof(cmdBuf), LIBUSB_NO_TIMEOUT);
-    if (wr < 0) {
+    ret = usb.bulk_transfer(uh->devh,
+        XUM_BULK_OUT_ENDPOINT | LIBUSB_ENDPOINT_OUT,
+        (unsigned char *)cmdBuf, sizeof(cmdBuf), &wr, LIBUSB_NO_TIMEOUT);
+    if (ret != LIBUSB_SUCCESS) {
         fprintf(stderr, "USB error in write cmd: %s\n",
-            usb.strerror());
+            usb.error_name(ret));
         return -1;
     }
 
@@ -627,12 +574,13 @@ xum1541_write(usb_dev_handle *HandleXum1541, __u_char modeFlags, const __u_char 
         bytes2write = size - bytesWritten;
         if (bytes2write > XUM_MAX_XFER_SIZE)
             bytes2write = XUM_MAX_XFER_SIZE;
-        wr = usb.bulk_write(HandleXum1541,
-            XUM_BULK_OUT_ENDPOINT | USB_ENDPOINT_OUT,
-            (char *)data, bytes2write, LIBUSB_NO_TIMEOUT);
-        if (wr < 0) {
+        wr = 0;
+        ret = usb.bulk_transfer(uh->devh,
+            XUM_BULK_OUT_ENDPOINT | LIBUSB_ENDPOINT_OUT,
+            (unsigned char *)data, bytes2write, &wr, LIBUSB_NO_TIMEOUT);
+        if (ret != LIBUSB_SUCCESS) {
             fprintf(stderr, "USB error in write data: %s\n",
-                usb.strerror());
+                usb.error_name(ret));
             return -1;
         } else if (wr > 0)
             xum1541_dbg(2, "wrote %d bytes", wr);
@@ -650,7 +598,7 @@ xum1541_write(usb_dev_handle *HandleXum1541, __u_char modeFlags, const __u_char 
 
     // If this is the CBM protocol, wait for the status message.
     if (mode == XUM1541_CBM) {
-        ret = xum1541_wait_status(HandleXum1541);
+        ret = xum1541_wait_status(uh->devh);
         if (ret >= 0)
             xum1541_dbg(2, "wait done, extended status %d", ret);
         else
@@ -682,9 +630,9 @@ xum1541_write(usb_dev_handle *HandleXum1541, __u_char modeFlags, const __u_char 
     fatal error, returns -1.
 */
 int
-xum1541_read(usb_dev_handle *HandleXum1541, __u_char mode, __u_char *data, size_t size)
+xum1541_read(struct xum1541_usb_handle *uh, __u_char mode, __u_char *data, size_t size)
 {
-    int rd;
+    int rd, ret;
     size_t bytesRead, bytes2read;
     unsigned char cmdBuf[XUM_CMDBUF_SIZE];
 
@@ -696,12 +644,12 @@ xum1541_read(usb_dev_handle *HandleXum1541, __u_char mode, __u_char *data, size_
     cmdBuf[1] = mode;
     cmdBuf[2] = size & 0xff;
     cmdBuf[3] = (size >> 8) & 0xff;
-    rd = usb.bulk_write(HandleXum1541,
-        XUM_BULK_OUT_ENDPOINT | USB_ENDPOINT_OUT,
-        (char *)cmdBuf, sizeof(cmdBuf), LIBUSB_NO_TIMEOUT);
-    if (rd < 0) {
+    ret = usb.bulk_transfer(uh->devh,
+        XUM_BULK_OUT_ENDPOINT | LIBUSB_ENDPOINT_OUT,
+        (unsigned char *)cmdBuf, sizeof(cmdBuf), &rd, LIBUSB_NO_TIMEOUT);
+    if (ret != LIBUSB_SUCCESS) {
         fprintf(stderr, "USB error in read cmd: %s\n",
-            usb.strerror());
+            usb.error_name(ret));
         return -1;
     }
 
@@ -711,12 +659,12 @@ xum1541_read(usb_dev_handle *HandleXum1541, __u_char mode, __u_char *data, size_
         bytes2read = size - bytesRead;
         if (bytes2read > XUM_MAX_XFER_SIZE)
             bytes2read = XUM_MAX_XFER_SIZE;
-        rd = usb.bulk_read(HandleXum1541,
-            XUM_BULK_IN_ENDPOINT | USB_ENDPOINT_IN,
-            (char *)data, bytes2read, LIBUSB_NO_TIMEOUT);
-        if (rd < 0) {
+        ret = usb.bulk_transfer(uh->devh,
+            XUM_BULK_IN_ENDPOINT | LIBUSB_ENDPOINT_IN,
+            (unsigned char *)data, bytes2read, &rd, LIBUSB_NO_TIMEOUT);
+        if (ret != LIBUSB_SUCCESS) {
             fprintf(stderr, "USB error in read data(%p, %d): %s\n",
-               data, (int)size, usb.strerror());
+               data, (int)size, usb.error_name(ret));
             return -1;
         } else if (rd > 0)
             xum1541_dbg(2, "read %d bytes", rd);

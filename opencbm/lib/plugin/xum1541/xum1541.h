@@ -9,10 +9,17 @@
 #ifndef XUM1541_H
 #define XUM1541_H
 
-#include <usb.h>
+#include <libusb.h>
 
 #include "opencbm.h"
 #include "xum1541_types.h"
+
+#define XUM1541_PREFIX "libusb/xum1541:"
+
+struct xum1541_usb_handle {
+	libusb_context *ctx;
+	libusb_device_handle *devh;
+};
 
 /*
  * Compile-time assert to make sure CBM_FILE is large enough.
@@ -24,7 +31,7 @@
 #define __CTASSERT(x, y)    typedef char __assert ## y[(x) ? 1 : -1]
 #endif
 
-CTASSERT(sizeof(CBM_FILE) >= sizeof(usb_dev_handle *));
+CTASSERT(sizeof(CBM_FILE) >= sizeof(struct xum1541_usb_handle *));
 
 /*
  * Make our control transfer timeout 10% later than the device itself
@@ -41,16 +48,16 @@ CTASSERT(sizeof(CBM_FILE) >= sizeof(usb_dev_handle *));
 #define MAX_ALLOWED_XUM1541_SERIALNUM 255
 
 const char *xum1541_device_path(int PortNumber);
-int xum1541_init(usb_dev_handle **HandleXum1541, int PortNumber);
-void xum1541_close(usb_dev_handle *HandleXum1541);
-int xum1541_control_msg(usb_dev_handle *HandleXum1541, unsigned int cmd);
-int xum1541_ioctl(usb_dev_handle *HandleXum1541, unsigned int cmd,
+int xum1541_init(struct xum1541_usb_handle **HandleXum1541, int PortNumber);
+void xum1541_close(struct xum1541_usb_handle *HandleXum1541);
+int xum1541_control_transfer(struct xum1541_usb_handle *HandleXum1541, unsigned int cmd);
+int xum1541_ioctl(struct xum1541_usb_handle *HandleXum1541, unsigned int cmd,
     unsigned int addr, unsigned int secaddr);
 
 // Read/write data in normal CBM and speeder protocol modes
-int xum1541_write(usb_dev_handle *HandleXum1541, __u_char mode,
+int xum1541_write(struct xum1541_usb_handle *HandleXum1541, __u_char mode,
     const __u_char *data, size_t size);
-int xum1541_read(usb_dev_handle *HandleXum1541, __u_char mode,
+int xum1541_read(struct xum1541_usb_handle *HandleXum1541, __u_char mode,
     __u_char *data, size_t size);
 
 #endif // XUM1541_H
