@@ -95,6 +95,8 @@ int xu1541_init(struct xu1541_usb_handle **uhp)
   ssize_t i = 0;
   int err = 0;
   unsigned char version[4], string[256];
+  int interface_claimed = 0;
+  int success = 0;
 
   xu1541_dbg(0, "Scanning usb ...");
 
@@ -172,54 +174,59 @@ int xu1541_init(struct xu1541_usb_handle **uhp)
 	return -1;
   }
 
-  // Select first and only device configuration.
-  err = usb.set_configuration(uh->devh, 1);
-  if (err != LIBUSB_SUCCESS) {
-      fprintf(stderr, "USB error: %s\n", usb.error_name(err));
-      goto error_close;
-  }
+do {
+    // Select first and only device configuration.
+    err = usb.set_configuration(uh->devh, 1);
+    if (err != LIBUSB_SUCCESS) {
+        fprintf(stderr, "USB error: %s\n", usb.error_name(err));
+        break;
+    }
       
-  /* Get exclusive access to interface 0. */
-  err = usb.claim_interface(uh->devh, 0);
-  if (err != LIBUSB_SUCCESS) {
-      fprintf(stderr, "USB error: %s\n", usb.error_name(err));
-      goto error_close;
+    /* Get exclusive access to interface 0. */
+    err = usb.claim_interface(uh->devh, 0);
+    if (err != LIBUSB_SUCCESS) {
+        fprintf(stderr, "USB error: %s\n", usb.error_name(err));
+        break;
+    }
+
+    interface_claimed = 1;
+
+    /* check the devices version number as firmware x.06 changed everything */
+    len = usb.control_transfer(uh->devh,
+           LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_ENDPOINT_IN,
+           XU1541_INFO, 0, 0, version, sizeof(version), 1000);
+
+    if (len < 0) {
+      fprintf(stderr, "USB request for XU1541 info failed: %s!\n",
+        usb.error_name(len));
+      break;
+    }
+
+    if (len != sizeof(version)) {
+      fprintf(stderr, "Unexpected number of bytes (%d) returned\n", len);
+      break;
+    }
+
+    xu1541_dbg(0, "firmware version %x.%02x", version[0], version[1]);
+
+    if (version[1] < 8) {
+      fprintf(stderr, "Device reports firmware version %x.%02x\n", 
+  	    version[0], version[1]);
+      fprintf(stderr, "but this version of opencbm requires at least "
+  	    "version x.08\n");
+      break;
+    }
+    success = 1;
+  } while (0);
+
+  /* error cleanup */
+  if (!success) {
+    if (interface_claimed) usb.release_interface(uh->devh, 0);
+
+    xu1541_close(uh);
   }
 
-  /* check the devices version number as firmware x.06 changed everything */
-  len = usb.control_transfer(uh->devh,
-	   LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_ENDPOINT_IN,
-	   XU1541_INFO, 0, 0, version, sizeof(version), 1000);
-
-  if (len < 0) {
-    fprintf(stderr, "USB request for XU1541 info failed: %s!\n",
-	    usb.error_name(len));
-    goto error_release;
-  }
-
-  if (len != sizeof(version)) {
-    fprintf(stderr, "Unexpected number of bytes (%d) returned\n", len);
-    goto error_release;
-  }
-
-  xu1541_dbg(0, "firmware version %x.%02x", version[0], version[1]);
-
-  if (version[1] < 8) {
-    fprintf(stderr, "Device reports firmware version %x.%02x\n", 
-	    version[0], version[1]);
-    fprintf(stderr, "but this version of opencbm requires at least "
-	    "version x.08\n");
-    goto error_release;
-  }
-
-  return 0;
-
-error_release:
-  usb.release_interface(uh->devh, 0);
-
-error_close:
-  xu1541_close(uh);
-  return -1;
+  return success ? 0 : -1;
 }
 
 /*! \brief close the xu1541 device

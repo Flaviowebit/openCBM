@@ -303,6 +303,8 @@ xum1541_init(struct xum1541_usb_handle **uhp, int PortNumber)
     unsigned char devInfo[XUM_DEVINFO_SIZE], devStatus;
     int len, ret;
     struct xum1541_usb_handle *uh;
+    int interface_claimed = 0;
+    int success = 0;
 
     *uhp = uh = malloc(sizeof(struct xum1541_usb_handle));
     if (NULL == uh) {
@@ -320,56 +322,65 @@ xum1541_init(struct xum1541_usb_handle **uhp, int PortNumber)
         return -1;
     }
 
-    // Select first and only device configuration.
-    ret = usb.set_configuration(uh->devh, 1);
-    if (ret != LIBUSB_SUCCESS) {
-        xum1541_cleanup(uh->devh, "USB error: %s\n", usb.error_name(ret));
-        goto error_close;
+    do {
+        // Select first and only device configuration.
+        ret = usb.set_configuration(uh->devh, 1);
+        if (ret != LIBUSB_SUCCESS) {
+            xum1541_cleanup(uh->devh, "USB error: %s\n", usb.error_name(ret));
+            break;
+        }
+
+        /*
+         * Get exclusive access to interface 0.
+         * After this point, do cleanup using xum1541_close() instead of
+         * xum1541_cleanup().
+         */
+        ret = usb.claim_interface(uh->devh, 0);
+        if (ret != LIBUSB_SUCCESS) {
+            xum1541_cleanup(uh->devh, "USB error: %s\n", usb.error_name(ret));
+            break;
+        }
+
+        interface_claimed = 1;
+
+        // Check the basic device info message for firmware version
+        memset(devInfo, 0, sizeof(devInfo));
+        len = usb.control_transfer(uh->devh, LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_ENDPOINT_IN,
+            XUM1541_INIT, 0, 0, (unsigned char*)devInfo, sizeof(devInfo), USB_TIMEOUT);
+        if (len < 2) {
+            fprintf(stderr, "USB request for XUM1541 info failed: %s\n",
+                usb.error_name(len));
+            break;
+        }
+        if (xum1541_check_version(devInfo[0]) != 0)
+            break;
+
+        if (len >= 4)
+            xum1541_dbg(0, "device capabilities %02x status %02x", devInfo[1], devInfo[2]);
+
+        // Check for the xum1541's current status. (Not the drive.)
+        devStatus = devInfo[2];
+        if ((devStatus & XUM1541_DOING_RESET) != 0) {
+            fprintf(stderr, "previous command was interrupted, resetting\n");
+            // Clear the stalls on both endpoints
+            if (xum1541_clear_halt(uh->devh) < 0)
+            break;
+        }
+
+        success = 1;
+    } while(0);
+
+    /* error cleanup */
+    if (!success) {
+        if (interface_claimed)
+            usb.release_interface(uh->devh, 0);
+
+        xum1541_close(uh);
     }
 
-    /*
-     * Get exclusive access to interface 0.
-     * After this point, do cleanup using xum1541_close() instead of
-     * xum1541_cleanup().
-     */
-    ret = usb.claim_interface(uh->devh, 0);
-    if (ret != LIBUSB_SUCCESS) {
-        xum1541_cleanup(uh->devh, "USB error: %s\n", usb.error_name(ret));
-        goto error_close;
-    }
-
-    // Check the basic device info message for firmware version
-    memset(devInfo, 0, sizeof(devInfo));
-    len = usb.control_transfer(uh->devh, LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_ENDPOINT_IN,
-        XUM1541_INIT, 0, 0, (unsigned char*)devInfo, sizeof(devInfo), USB_TIMEOUT);
-    if (len < 2) {
-        fprintf(stderr, "USB request for XUM1541 info failed: %s\n",
-            usb.error_name(len));
-        goto error_release;
-    }
-    if (xum1541_check_version(devInfo[0]) != 0)
-        goto error_release;
-    if (len >= 4)
-        xum1541_dbg(0, "device capabilities %02x status %02x", devInfo[1], devInfo[2]);
-
-    // Check for the xum1541's current status. (Not the drive.)
-    devStatus = devInfo[2];
-    if ((devStatus & XUM1541_DOING_RESET) != 0) {
-        fprintf(stderr, "previous command was interrupted, resetting\n");
-        // Clear the stalls on both endpoints
-        if (xum1541_clear_halt(uh->devh) < 0)
-            goto error_release;
-    }
-
-    return 0;
-
-error_release:
-    usb.release_interface(uh->devh, 0);
-
-error_close:
-    xum1541_close(uh);
-    return -1;
+    return success ? 0 : -1;
 }
+
 /*! \brief close the xum1541 device
 
  \param HandleXum1541
