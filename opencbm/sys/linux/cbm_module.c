@@ -1,3 +1,6 @@
+#define DIRECT_PORT_ACCESS 1
+#define DEBUG 1
+#define DEBUG_INTERRUPT 1
 /*
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -40,6 +43,7 @@
 #ifdef DIRECT_PORT_ACCESS
 # include <asm/io.h>
 # include <linux/ioport.h>
+# include <linux/interrupt.h>
 #else
 # include <linux/parport.h>
 #endif
@@ -157,6 +161,9 @@ static int data_reverse;
 #ifdef DIRECT_PORT_ACCESS
 static int in_port;
 static int out_port;
+
+static struct {
+} dev_id;
 #endif
 
 #ifndef DIRECT_PORT_ACCESS
@@ -784,21 +791,33 @@ static int cbm_release(struct inode *inode, struct file *f)
 
 static irqreturn_t cbm_interrupt(int irq, void *dev_id)
 {
-	DPRINTK_INT("cbm: cbm_interrupt()\n");
-	POLL();			/* acknowledge interrupt */
+        static volatile int irqcounter = 0;
+
+	DPRINTK_INT("cbm: cbm_interrupt() %u\n", ++irqcounter);
+
+#if 0 // for the time being, assume all interrupts are for us!
+	/* for shared interrupt handlers */
+	if (POLL() & (1<<2)) {
+		DPRINTK_INT("cbm: cbm_interrupt(): NOT OURS!\n");
+		return IRQ_NONE;
+	}
+#endif           
+	DPRINTK_INT("cbm: cbm_interrupt(): IT IS OURS!\n");
+
+	POLL();			/* acknowledge interrupt (\todo not needed anymore?) */
 
 	if (cbm_irq_count == 0) {
-		DPRINTK_INT("cbm: cbm_interrupt(): spurious interrupt\n");
+		DPRINTK_INT("cbm: cbm_interrupt(): spurious interrupt %u\n", irqcounter--);
 		return IRQ_NONE;
 	}
 	else if (--cbm_irq_count == 0) {
-		DPRINTK_INT("cbm: cbm_interrupt(): can continue\n");
+		DPRINTK_INT("cbm: cbm_interrupt(): can continue %u\n", irqcounter--);
 		DPRINTK("cbm: cbm_interrupt(): continue to send (no EOI)\n");
 		SET(CLK_OUT);
 		wake_up_interruptible(&cbm_wait_q);
 	}
 	else {
-		DPRINTK_INT("cbm: cbm_interrupt(): must still wait\n");
+		DPRINTK_INT("cbm: cbm_interrupt(): must still wait %u\n", irqcounter--);
 	}
 	return IRQ_HANDLED;
 }
@@ -839,7 +858,7 @@ static struct miscdevice cbm_dev = {
 void cbm_cleanup(void)
 {
 #ifdef DIRECT_PORT_ACCESS
-	free_irq(irq, NULL);
+	free_irq(irq, &dev_id);
 	release_region(port, 3);
 #else
 	DPRINTK("releasing parallel port\n");
@@ -855,15 +874,14 @@ int cbm_init(void)
 	char *msg;
 
 #ifdef DIRECT_PORT_ACCESS
-	if (check_region(port, 3)) {
+	if (!request_region(port, 3, NAME)) {
 		printk("cbm_init: port already in use\n");
 		return -EBUSY;
 	}
-	if (request_irq(irq, cbm_interrupt, SA_INTERRUPT, NAME, NULL)) {
+	if (request_irq(irq, cbm_interrupt, SA_INTERRUPT | IRQF_SHARED, NAME, &dev_id)) {
 		printk("cbm_init: irq already in use\n");
 		return -EBUSY;
 	}
-	request_region(port, 3, NAME);
 #else
 	struct parport *pp;
 	pp = parport_find_number(lp);
