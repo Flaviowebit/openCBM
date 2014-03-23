@@ -6,21 +6,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <malloc.h>
 
-#include <opencbm.h>
-#include <arch.h>
+#include "opencbm.h"
+#include "arch.h"
 #include "cap.h"
 #include "tape.h"
 #include "misc.h"
 
 // Global variables
-unsigned __int8  CAP_Machine, CAP_Video, CAP_StartEdge, CAP_SignalFormat;
-unsigned __int32 CAP_Precision, CAP_SignalWidth, CAP_StartOfs;
+uint8_t  CAP_Machine, CAP_Video, CAP_StartEdge, CAP_SignalFormat;
+uint32_t CAP_Precision, CAP_SignalWidth, CAP_StartOfs;
 CBM_FILE         fd;
 
 // Break handling variables
-CRITICAL_SECTION CritSec_fd, CritSec_BreakHandler;
+// CRITICAL_SECTION CritSec_fd, CritSec_BreakHandler;
 BOOL             fd_Initialized = FALSE, AbortTapeOps = FALSE;
 
 
@@ -54,9 +53,9 @@ void usage(void)
 }
 
 
-__int32 EvaluateCommandlineParams(__int32 argc, __int8 *argv[], __int32 *piTapeBufferSize, __int8 filename[_MAX_PATH])
+int32_t EvaluateCommandlineParams(int argc, char *argv[], int32_t *piTapeBufferSize, char **pfilename)
 {
-	unsigned __int8 bTapeType = 0, bBufferSize = 0, bSamplingRate = 0; // Commandline flag counters.
+	uint8_t bTapeType = 0, bBufferSize = 0, bSamplingRate = 0; // Commandline flag counters.
 
 	if ((argc < 3) || (5 < argc))
 	{
@@ -199,20 +198,14 @@ __int32 EvaluateCommandlineParams(__int32 argc, __int8 *argv[], __int32 *piTapeB
 		return -1;
 	}
 
-	if (strlen(argv[0]) >= _MAX_PATH)
-	{
-		printf("\nError: Filename too long.\n\n");
-		return -1;
-	}
-
-	strcpy(filename, argv[0]);
+        *pfilename = argv[0]; 
 
 	return 0;
 }
 
 
 // Allocate memory for tape image.
-__int32 AllocateImageBuffer(void **ppucTapeBuffer, __int32 iTapeBufferSize)
+int32_t AllocateImageBuffer(uint8_t **ppucTapeBuffer, int32_t iTapeBufferSize)
 {
 	if (iTapeBufferSize < 0)
 	{
@@ -221,7 +214,7 @@ __int32 AllocateImageBuffer(void **ppucTapeBuffer, __int32 iTapeBufferSize)
 	}
 
 	// Allocate memory for tape image.
-	*ppucTapeBuffer = malloc(iTapeBufferSize);
+	*ppucTapeBuffer = (uint8_t*) malloc(iTapeBufferSize);
 	if (*ppucTapeBuffer == NULL)
 	{
 		printf("Error: Could not allocate memory for capture data.\n");
@@ -236,9 +229,9 @@ __int32 AllocateImageBuffer(void **ppucTapeBuffer, __int32 iTapeBufferSize)
 
 
 // Print tape length to console.
-void OutputTapeLength(unsigned __int32 uiTotalTapeTimeSeconds, unsigned __int32 uiNumSignals, __int32 iCaptureLen)
+void OutputTapeLength(uint32_t uiTotalTapeTimeSeconds, uint32_t uiNumSignals, int32_t iCaptureLen)
 {
-	unsigned __int32 hours, mins, secs;
+	uint32_t hours, mins, secs;
 
 	hours = (uiTotalTapeTimeSeconds/3600);
 	printf("Tape length: %uh", hours);
@@ -251,10 +244,10 @@ void OutputTapeLength(unsigned __int32 uiTotalTapeTimeSeconds, unsigned __int32 
 
 
 // Convert timestamps to 5 bytes, downscale precision to 1us if requested and write to CAP file.
-__int32 ConvertAndWriteCaptureData(HANDLE hCAP, unsigned __int8 *pucTapeBuffer, __int32 iCaptureLen, unsigned __int32 *puiTotalTapeTimeSeconds, unsigned __int32 *puiNumSignals)
+int32_t ConvertAndWriteCaptureData(HANDLE hCAP, uint8_t *pucTapeBuffer, int32_t iCaptureLen, uint32_t *puiTotalTapeTimeSeconds, uint32_t *puiNumSignals)
 {
-	unsigned __int64 ui64Delta, ui64TotalTapeTime = 0;
-	__int32          FuncRes, i = 0;
+	uint64_t ui64Delta, ui64TotalTapeTime = 0;
+	int32_t  FuncRes, i = 0;
 
 	*puiTotalTapeTimeSeconds = 0;
 	*puiNumSignals = 0;
@@ -293,17 +286,17 @@ __int32 ConvertAndWriteCaptureData(HANDLE hCAP, unsigned __int8 *pucTapeBuffer, 
 	}
 
 	// Calculate tape length in seconds.
-	*puiTotalTapeTimeSeconds = (unsigned __int32) (((ui64TotalTapeTime + 8000000) >> 10)/15625); //16000000;
+	*puiTotalTapeTimeSeconds = (uint32_t) (((ui64TotalTapeTime + 8000000) >> 10)/15625); //16000000;
 
 	return 0;
 }
 
 
 // Write tape image to specified image file.
-__int32 WriteTapeBufferToCaptureFile(HANDLE hCAP, unsigned __int8 *pucTapeBuffer, __int32 iCaptureLen)
+int32_t WriteTapeBufferToCaptureFile(HANDLE hCAP, uint8_t *pucTapeBuffer, int32_t iCaptureLen)
 {
-	unsigned __int32 uiTotalTapeTimeSeconds, uiNumSignals;
-	__int32          FuncRes;
+	uint32_t uiTotalTapeTimeSeconds, uiNumSignals;
+	int32_t  FuncRes;
 
 	if (iCaptureLen == 0)
 		printf("Empty capture file.\n");
@@ -322,7 +315,7 @@ __int32 WriteTapeBufferToCaptureFile(HANDLE hCAP, unsigned __int8 *pucTapeBuffer
 		return -1;
 	}
 
-	FuncRes = CAP_WriteHeaderAddon(hCAP, "   Created by       ZoomTape    ----------------", 0x30);
+	FuncRes = CAP_WriteHeaderAddon(hCAP, (unsigned char*)"   Created by       ZoomTape    ----------------", 0x30);
 	if (FuncRes != CAP_Status_OK)
 	{
 		CAP_OutputError(FuncRes);
@@ -340,10 +333,10 @@ __int32 WriteTapeBufferToCaptureFile(HANDLE hCAP, unsigned __int8 *pucTapeBuffer
 }
 
 
-__int32 CaptureTape(CBM_FILE fd, unsigned __int8 *pucTapeBuffer, __int32 iTapeBufferSize, __int32 *piCaptureLen)
+int32_t CaptureTape(CBM_FILE fd, uint8_t *pucTapeBuffer, int32_t iTapeBufferSize, int32_t *piCaptureLen)
 {
-	unsigned __int8 ReadConfig, ReadConfig2;
-	__int32         Status, BytesRead, BytesWritten, FuncRes;
+	uint8_t ReadConfig, ReadConfig2;
+	int32_t Status, BytesRead, BytesWritten, FuncRes;
 
 	// Check abort flag.
 	if (AbortTapeOps)
@@ -378,9 +371,9 @@ __int32 CaptureTape(CBM_FILE fd, unsigned __int8 *pucTapeBuffer, __int32 iTapeBu
 
 	// Prepare tape read configuration.
 	if (CAP_StartEdge == CAP_StartEdge_Falling)
-		ReadConfig = (unsigned __int8)XUM1541_TAP_READ_STARTFALLEDGE; // Start reading with falling edge.
+		ReadConfig = (uint8_t)XUM1541_TAP_READ_STARTFALLEDGE; // Start reading with falling edge.
 	else
-		ReadConfig = ~(unsigned __int8)XUM1541_TAP_READ_STARTFALLEDGE; // Start reading with rising edge.
+		ReadConfig = ~(uint8_t)XUM1541_TAP_READ_STARTFALLEDGE; // Start reading with rising edge.
 
 	// Check abort flag.
 	if (AbortTapeOps)
@@ -620,28 +613,26 @@ __int32 CaptureTape(CBM_FILE fd, unsigned __int8 *pucTapeBuffer, __int32 iTapeBu
 
 // Break handler.
 // Initialized by SetConsoleCtrlHandler() after critical sections initialized.
-BOOL BreakHandler(DWORD fdwCtrlType)
+//BOOL BreakHandler(DWORD fdwCtrlType)
+static void ARCH_SIGNALDECL BreakHandler(int dummy)
 {
-	if (fdwCtrlType == CTRL_C_EVENT)
+	printf("\nAborting...\n");
+	AbortTapeOps = TRUE; // Flag tape ops abort.
+
+//	if (!TryEnterCriticalSection(&CritSec_BreakHandler))
+//		return; // Already aborting.
+
+//	EnterCriticalSection(&CritSec_fd); // Acquire handle flag access.
+
+	if (fd_Initialized)
 	{
-		printf("\nAborting...\n");
-		AbortTapeOps = TRUE; // Flag tape ops abort.
-
-		if (!TryEnterCriticalSection(&CritSec_BreakHandler))
-			return TRUE; // Already aborting.
-
-		EnterCriticalSection(&CritSec_fd); // Acquire handle flag access.
-
-		if (fd_Initialized)
-		{
-			cbm_tap_break(fd); // Handle valid.
-			LeaveCriticalSection(&CritSec_fd); // Release handle flag access.
-			return TRUE;
-		}
-
-		LeaveCriticalSection(&CritSec_fd); // Release handle flag access.
+		cbm_tap_break(fd); // Handle valid.
+//		LeaveCriticalSection(&CritSec_fd); // Release handle flag access.
+		cbm_driver_close(fd); // mab
+		exit(1);
 	}
-	return FALSE;
+
+//	LeaveCriticalSection(&CritSec_fd); // Release handle flag access.
 }
 
 
@@ -651,20 +642,20 @@ BOOL BreakHandler(DWORD fdwCtrlType)
 //   -1: an error occurred
 int ARCH_MAINDECL main(int argc, char *argv[])
 {
-	HANDLE          hCAP;
-	unsigned __int8 *pucTapeBuffer = NULL;
-	__int8          filename[_MAX_PATH];
-	__int32         iCaptureLen, iTapeBufferSize = 0;
-	__int32         FuncRes, RetVal = -1;
+	HANDLE  hCAP;
+	uint8_t *pucTapeBuffer = NULL;
+	char    *filename = NULL;
+	int32_t iCaptureLen, iTapeBufferSize = 0;
+	int32_t FuncRes, RetVal = -1;
 
 	printf("\ntapread v1.00 - Commodore 1530/1531 tape image creator\n");
 	printf("Copyright 2012 Arnd Menge\n\n");
 
-	InitializeCriticalSection(&CritSec_fd);
-	InitializeCriticalSection(&CritSec_BreakHandler);
+//	InitializeCriticalSection(&CritSec_fd);
+//	InitializeCriticalSection(&CritSec_BreakHandler);
 
-	if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE) BreakHandler, TRUE))
-		printf("Ctrl-C break handler not installed.\n\n");
+//	if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE) BreakHandler, TRUE))
+//		printf("Ctrl-C break handler not installed.\n\n");
 
 	// Set defaults.
 	CAP_Precision    = 1;                         // Default: 1us signal precision.
@@ -673,7 +664,7 @@ int ARCH_MAINDECL main(int argc, char *argv[])
 	CAP_SignalWidth  = CAP_SignalWidth_40bit;     // Default: 40bit.
 	CAP_StartOfs     = CAP_Default_Data_Start_Offset+0x30; // Text addon after standard header.
 
-	if (EvaluateCommandlineParams(argc, argv, &iTapeBufferSize, filename) == -1)
+	if (EvaluateCommandlineParams(argc, argv, &iTapeBufferSize, &filename) == -1)
 	{
 		usage();
 		goto exit;
@@ -701,25 +692,27 @@ int ARCH_MAINDECL main(int argc, char *argv[])
 		goto exit;
 	}
 
-	EnterCriticalSection(&CritSec_fd); // Acquire handle flag access.
+//	EnterCriticalSection(&CritSec_fd); // Acquire handle flag access.
 
 	if (cbm_driver_open_ex(&fd, NULL) != 0)
 	{
 		printf("Driver error.\n");
 		CAP_CloseFile(&hCAP);
-		LeaveCriticalSection(&CritSec_fd);
+//		LeaveCriticalSection(&CritSec_fd);
 		goto exit;
 	}
 
 	fd_Initialized = TRUE;
-	LeaveCriticalSection(&CritSec_fd); // Release handle flag access.
+//	LeaveCriticalSection(&CritSec_fd); // Release handle flag access.
+
+	arch_set_ctrlbreak_handler(BreakHandler);
 
 	RetVal = CaptureTape(fd, pucTapeBuffer, iTapeBufferSize, &iCaptureLen);
 
-	EnterCriticalSection(&CritSec_fd); // Acquire handle flag access.
+//	EnterCriticalSection(&CritSec_fd); // Acquire handle flag access.
 	cbm_driver_close(fd);
 	fd_Initialized = FALSE;
-	LeaveCriticalSection(&CritSec_fd); // Release handle flag access.
+//	LeaveCriticalSection(&CritSec_fd); // Release handle flag access.
 
 	if (RetVal != 0)
 	{
@@ -740,8 +733,8 @@ int ARCH_MAINDECL main(int argc, char *argv[])
 	printf("Capture file successfully created.\n");
 
 	exit:
-	DeleteCriticalSection(&CritSec_fd);
-	DeleteCriticalSection(&CritSec_BreakHandler);
+//	DeleteCriticalSection(&CritSec_fd);
+//	DeleteCriticalSection(&CritSec_BreakHandler);
    	if (pucTapeBuffer != NULL) free(pucTapeBuffer);
    	printf("\n");
    	return RetVal;

@@ -5,11 +5,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <Windows.h>
 
 #include "cap.h"
 #include "tap-cbm.h"
 #include "misc.h"
+#include "arch.h"
 
 #define FREQ_C64_PAL    985248
 #define FREQ_C64_NTSC  1022727
@@ -24,19 +24,18 @@
 #define NoSplit              3
 
 
-__int32 HandlePause(HANDLE hTAP, unsigned __int64 ui64Len, unsigned __int8 uiNeededSplit, unsigned __int8 TAPv, unsigned __int32 *puiCounter)
+int32_t HandlePause(HANDLE hTAP, uint64_t ui64Len, uint8_t uiNeededSplit, uint8_t TAPv, uint32_t *puiCounter)
 {
-	unsigned __int32 numsplits, i;
-	__int32          FuncRes;
+	uint32_t numsplits, i;
 
 	if (TAPv == TAPv2)
 	{
 		if (ui64Len > 0x00ffffff)
 		{
-			numsplits = (unsigned __int32) (ui64Len/0x00ffffff);
+			numsplits = (uint32_t) (ui64Len/0x00ffffff);
 			if ((ui64Len % 0x00ffffff) != 0) numsplits++;
 
-			if (((unsigned __int8)(numsplits % 2)) != uiNeededSplit) // NeedEvenSplitNumber=0 / NeedOddSplitNumber=1
+			if (((uint8_t)(numsplits % 2)) != uiNeededSplit) // NeedEvenSplitNumber=0 / NeedOddSplitNumber=1
 			{
 				// Split last 2 parts into 3, make sure last halfwave is not too short.
 				// Write (n-2) long ones, last two /3: 0.33 < length < 0.67.
@@ -78,7 +77,7 @@ __int32 HandlePause(HANDLE hTAP, unsigned __int64 ui64Len, unsigned __int8 uiNee
 		if (ui64Len > 0)
 		{
 			// Write 32bit unsigned integer to image file: LSB first, MSB last.
-			Check_TAP_CBM_Error_TextRetM1(TAP_CBM_WriteSignal_4Bytes(hTAP, (unsigned __int32) ((ui64Len << 8) & 0xffffff00), puiCounter));
+			Check_TAP_CBM_Error_TextRetM1(TAP_CBM_WriteSignal_4Bytes(hTAP, (uint32_t) ((ui64Len << 8) & 0xffffff00), puiCounter));
 		}
 	}
 
@@ -100,10 +99,10 @@ __int32 HandlePause(HANDLE hTAP, unsigned __int64 ui64Len, unsigned __int8 uiNee
 }
 
 
-__int32 Initialize_TAP_header_and_return_frequencies(HANDLE hCAP, HANDLE hTAP, unsigned __int32 *puiTimer_Precision_MHz, unsigned __int32 *puiFreq)
+int32_t Initialize_TAP_header_and_return_frequencies(HANDLE hCAP, HANDLE hTAP, uint32_t *puiTimer_Precision_MHz, uint32_t *puiFreq)
 {
-	unsigned __int8 CAP_Machine, CAP_Video, TAP_Machine, TAP_Video, TAP_Version;
-	__int32         FuncRes;
+	uint8_t CAP_Machine, CAP_Video, TAP_Machine, TAP_Video, TAP_Version;
+	int32_t FuncRes;
 
 	// Seek to start of image file and read image header, extract & verify header contents, seek to start of image data.
 	FuncRes = CAP_ReadHeader(hCAP);
@@ -212,14 +211,14 @@ __int32 Initialize_TAP_header_and_return_frequencies(HANDLE hCAP, HANDLE hTAP, u
 
 
 // Convert CAP to CBM TAP format.
-__int32 CAP2CBMTAP(HANDLE hCAP, HANDLE hTAP)
+int32_t CAP2CBMTAP(HANDLE hCAP, HANDLE hTAP)
 {
-	unsigned __int64 ui64Delta, ui64Delta2, ui64Len;
-	unsigned __int32 Timer_Precision_MHz, uiFreq;
-	unsigned __int8  TAPv; // TAP file format version.
-	unsigned __int8  ch;   // Single TAP data byte.
-	__int32          TAP_Counter = 0; // CAP & TAP file byte counters.
-	__int32          FuncRes, ReadFuncRes; // Function call results.
+	uint64_t ui64Delta, ui64Delta2, ui64Len;
+	uint32_t Timer_Precision_MHz, uiFreq;
+	uint8_t  TAPv; // TAP file format version.
+	uint8_t  ch;   // Single TAP data byte.
+	uint32_t TAP_Counter = 0; // CAP & TAP file byte counters.
+	int32_t  FuncRes, ReadFuncRes; // Function call results.
 
 	if (Initialize_TAP_header_and_return_frequencies(hCAP, hTAP, &Timer_Precision_MHz, &uiFreq) != 0)
 		return -1;
@@ -284,7 +283,7 @@ __int32 CAP2CBMTAP(HANDLE hCAP, HANDLE hTAP)
 		else
 		{
 			// We have a data byte.
-			ch = (unsigned __int8) ((ui64Len+4)/8);
+			ch = (uint8_t) ((ui64Len+4)/8);
 			Check_TAP_CBM_Error_TextRetM1(TAP_CBM_WriteSignal_1Byte(hTAP, ch, &TAP_Counter));
 		}
 	} // Convert while CAP file signal available.

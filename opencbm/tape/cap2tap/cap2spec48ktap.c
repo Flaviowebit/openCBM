@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <Windows.h>
 
 #include "cap.h"
 
@@ -24,39 +23,39 @@
 
 
 // Convert CAP to Spectrum48K TAP format. *EXPERIMENTAL*
-__int32 CAP2SPEC48KTAP(HANDLE hCAP, FILE *TapFile)
+int32_t CAP2SPEC48KTAP(HANDLE hCAP, FILE *TapFile)
 {
-	unsigned __int8  DBGFLAG = 0; // 1 = Debug output
-	unsigned __int8  *zb; // Spectrum48K TAP image buffer.
-	unsigned __int8  ch = 0;
-	unsigned __int64 ui64Delta, ui64Len;
-	unsigned __int32 Timer_Precision_MHz;
-	__int32          FuncRes;    // Function call result.
-	__int32          RetVal = 0; // Default return value.
+	uint8_t  DBGFLAG = 0; // 1 = Debug output
+	uint8_t  *zb; // Spectrum48K TAP image buffer.
+	uint8_t  ch = 0;
+	uint64_t ui64Delta, ui64Len;
+	uint32_t Timer_Precision_MHz;
+	int32_t  FuncRes;    // Function call result.
+	int32_t  RetVal = 0; // Default return value.
 
 	// Declare variables holding current/last pulse & wave information.
-	unsigned __int8 LastPulse = PausePulse;
-	unsigned __int8 Pulse     = PausePulse;
-	unsigned __int8 Wave      = HalfWave;
+	uint8_t LastPulse = PausePulse;
+	uint8_t Pulse     = PausePulse;
+	uint8_t Wave      = HalfWave;
 
 	// Declare image pointers.
-	unsigned __int32 BlockStart = 0; // Data block start in image.
-	unsigned __int32 BlockPos   = 2; // Current position in image.
+	int32_t BlockStart = 0; // Data block start in image.
+	int32_t BlockPos   = 2; // Current position in image.
 
 	// Declare bit & byte counters.
-	unsigned __int8  BitCount         = 0; // Data block bit counter.
-	unsigned __int32 ByteCount        = 0; // Data block data byte counter.
-	unsigned __int32 DataPulseCounter = 0; // Data block pulse counter.
-	unsigned __int32 BlockByteCounter = 0; // Data block byte counter.
+	uint8_t  BitCount         = 0; // Data block bit counter.
+	int32_t ByteCount        = 0; // Data block data byte counter.
+	int32_t DataPulseCounter = 0; // Data block pulse counter.
+	int32_t BlockByteCounter = 0; // Data block byte counter.
 
 	// Get memory for Spectrum48K TAP image buffer. Should be dynamic size.
-	zb = (unsigned __int8 *)malloc((size_t)10000000);
+	zb = (uint8_t *)malloc((size_t)10000000);
 	if (zb == NULL)
 	{
 		printf("Error: Not enough memory for Spectrum48K TAP image buffer.");
 		return -1;
 	}
-	memset((void *)zb, (__int32)0, (size_t)10000000);
+	memset((void *)zb, (int32_t)0, (size_t)10000000);
 
 	// Seek to start of image file and read image header, extract & verify header contents, seek to start of image data.
 	FuncRes = CAP_ReadHeader(hCAP);
@@ -96,7 +95,7 @@ __int32 CAP2SPEC48KTAP(HANDLE hCAP, FILE *TapFile)
 	{
 		ui64Len = (ui64Delta+(Timer_Precision_MHz/2))/Timer_Precision_MHz;
 
-		if (DBGFLAG == 1) printf("%I64u ", ui64Len);
+		if (DBGFLAG == 1) printf("%llu ", ui64Len);
 		
 		LastPulse = Pulse;
 

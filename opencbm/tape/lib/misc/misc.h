@@ -6,7 +6,7 @@
 #ifndef __TAP_MISC_H_
 #define __TAP_MISC_H_
 
-#include <Windows.h>
+#include "arch.h"
 
 // Macro to handle errors of called exported functions.
 #define	Check_CAP_Error_TextRetM1(FuncRes) \
@@ -28,7 +28,7 @@
 		}                                 \
 	}
 
-__int32 OutputError(__int32 Status);
-__int32 OutputFuncError(__int32 Status);
+int32_t OutputError(int32_t Status);
+int32_t OutputFuncError(int32_t Status);
 
 #endif

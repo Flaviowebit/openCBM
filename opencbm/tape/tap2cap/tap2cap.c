@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <arch.h>
+#include "arch.h"
 #include "cbmtap2cap.h"
 #include "cap.h"
 #include "tap-cbm.h"
@@ -20,7 +20,7 @@ void usage(void)
 }
 
 
-__int32 Evaluate_Commandline_Params(__int32 argc, __int8 *argv[])
+int32_t Evaluate_Commandline_Params(int argc, char *argv[])
 {
 	if (argc == 3) return 0;
 	else return -1;
@@ -34,7 +34,7 @@ __int32 Evaluate_Commandline_Params(__int32 argc, __int8 *argv[])
 int ARCH_MAINDECL main(int argc, char *argv[])
 {
 	HANDLE  hCAP, hTAP;
-	__int32 FuncRes, RetVal = -1;
+	int32_t FuncRes, RetVal = -1;
 
 	printf("\nTAP2CAP v1.00 - TAP image to ZoomTape CAP image conversion\n");
 	printf("Copyright 2012 Arnd Menge\n\n");

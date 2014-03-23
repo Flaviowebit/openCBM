@@ -6,10 +6,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <Windows.h>
-#include <malloc.h>
 
 #include "tap-cbm.h"
+#include "arch.h"
 
 #define Header_Size_TAP_CBM 0x14
 

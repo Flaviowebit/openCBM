@@ -6,7 +6,7 @@
 #ifndef __TAP_CBM_H_
 #define __TAP_CBM_H_
 
-#include <Windows.h>
+#include "arch.h"
 
 // Status results from exported functions
 #define TAP_CBM_Status_OK                     0

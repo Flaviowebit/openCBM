@@ -10,6 +10,8 @@ SUBDIRS  = include arch/$(OS_ARCH) libmisc lib \
            cbmctrl cbmformat cbmforng d64copy cbmcopy \
 	   d82copy imgcopy \
            demo/flash demo/morse demo/rpm1541 \
+	   tape/lib/cap tape/lib/misc tape/lib/tap-cbm \
+	   tape/tapread tape/tapwrite tape/tap2cap tape/cap2tap tape/tapcontrol \
 	   sample/libtrans
 ifeq "$(OS)" "Linux"
 SUBDIRS += compat

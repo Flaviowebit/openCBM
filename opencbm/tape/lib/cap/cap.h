@@ -6,7 +6,7 @@
 #ifndef __CAP_H_
 #define __CAP_H_
 
-#include <Windows.h>
+#include "arch.h"
 
 // Status results from exported functions
 #define CAP_Status_OK                              0
@@ -91,10 +91,10 @@ int CAP_WriteHeader(HANDLE hHandle);
 int CAP_WriteHeaderAddon(HANDLE hHandle, unsigned char *pucString, unsigned int uiStringLen);
 
 // Read a signal from image, increment byte counter.
-int CAP_ReadSignal(HANDLE hHandle, unsigned __int64 *pui64Signal, int *piCounter);
+int CAP_ReadSignal(HANDLE hHandle, uint64_t *pui64Signal, int *piCounter);
 
 // Write a signal to image, increment counter for each written byte.
-int CAP_WriteSignal(HANDLE hHandle, unsigned __int64 ui64Signal, int *piCounter);
+int CAP_WriteSignal(HANDLE hHandle, uint64_t ui64Signal, int *piCounter);
 
 // Verify header contents (Signature, Version, Precision, Machine, Video, StartEdge, SignalFormat, SignalWidth, StartOfs).
 int CAP_isValidHeader(HANDLE hHandle);

@@ -6,9 +6,9 @@
 #ifndef __CAP2CBMTAP_H_
 #define __CAP2CBMTAP_H_
 
-#include <Windows.h>
+#include "arch.h"
 
 // Convert CAP to CBM TAP format.
-__int32 CAP2CBMTAP(HANDLE hCAP, HANDLE hTAP);
+int32_t CAP2CBMTAP(HANDLE hCAP, HANDLE hTAP);
 
 #endif

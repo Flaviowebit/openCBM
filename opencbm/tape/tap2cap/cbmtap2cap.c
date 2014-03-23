@@ -5,9 +5,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <Windows.h>
 
-#include <arch.h>
+#include "arch.h"
 #include "cap.h"
 #include "tap-cbm.h"
 #include "misc.h"
@@ -23,16 +22,15 @@
 #define NoSplit              3
 
 // Global variables
-unsigned __int8   CAP_Machine, CAP_Video, CAP_StartEdge, CAP_SignalFormat;
-unsigned __int32  CAP_Precision, CAP_SignalWidth, CAP_StartOfs;
-unsigned __int8   TAP_Machine, TAP_Video, TAPv;
-unsigned __int32  TAP_ByteCount;
+uint8_t  CAP_Machine, CAP_Video, CAP_StartEdge, CAP_SignalFormat;
+uint32_t CAP_Precision, CAP_SignalWidth, CAP_StartOfs;
+uint8_t  TAP_Machine, TAP_Video, TAPv;
+uint32_t TAP_ByteCount;
 
 
-__int32 HandleDeltaAndWriteToCAP(HANDLE hCAP, unsigned __int64 ui64Delta, unsigned __int8 uiSplit)
+int32_t HandleDeltaAndWriteToCAP(HANDLE hCAP, uint64_t ui64Delta, uint8_t uiSplit)
 {
-	unsigned __int64 ui64SplitLen;
-	__int32          FuncRes;
+	uint64_t ui64SplitLen;
 
 	if (uiSplit == NeedSplit)
 	{
@@ -52,9 +50,9 @@ __int32 HandleDeltaAndWriteToCAP(HANDLE hCAP, unsigned __int64 ui64Delta, unsign
 }
 
 
-__int32 Initialize_CAP_header_and_return_frequency(HANDLE hCAP, HANDLE hTAP, unsigned __int32 *puiFreq)
+int32_t Initialize_CAP_header_and_return_frequency(HANDLE hCAP, HANDLE hTAP, uint32_t *puiFreq)
 {
-	__int32 FuncRes;
+	int32_t FuncRes;
 
 	// Determine target machine & video.
 
@@ -109,7 +107,7 @@ __int32 Initialize_CAP_header_and_return_frequency(HANDLE hCAP, HANDLE hTAP, uns
 		return -1;
 	}
 
-	FuncRes = CAP_WriteHeaderAddon(hCAP, "   Created by       TAP2CAP     ----------------", 0x30);
+	FuncRes = CAP_WriteHeaderAddon(hCAP, (unsigned char*) "   Created by       TAP2CAP     ----------------", 0x30);
 	if (FuncRes != CAP_Status_OK)
 	{
 		CAP_OutputError(FuncRes);
@@ -143,13 +141,12 @@ __int32 Initialize_CAP_header_and_return_frequency(HANDLE hCAP, HANDLE hTAP, uns
 
 
 // Convert CBM TAP to CAP format.
-__int32 CBMTAP2CAP(HANDLE hCAP, HANDLE hTAP)
+int32_t CBMTAP2CAP(HANDLE hCAP, HANDLE hTAP)
 {
-	unsigned __int64 ui64Delta;
-	unsigned __int32 uiDelta, uiFreq;
-	unsigned __int32 TAP_Counter = 0; // CAP & TAP file byte counters.
-	unsigned __int8  ch;
-	__int32          FuncRes;
+	uint64_t ui64Delta;
+	uint32_t uiDelta, uiFreq;
+	uint32_t TAP_Counter = 0; // CAP & TAP file byte counters.
+	int32_t  FuncRes;
 
 	// Seek to & read image header, extract & verify header contents.
 	FuncRes = TAP_CBM_ReadHeader(hTAP);

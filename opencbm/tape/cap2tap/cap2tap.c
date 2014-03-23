@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <arch.h>
+#include "arch.h"
 #include "cap2cbmtap.h"
 #include "cap2spec48ktap.h"
 #include "cap.h"
@@ -21,7 +21,7 @@ void usage(void)
 }
 
 
-__int32 Evaluate_Commandline_Params(__int32 argc, __int8 *argv[])
+int32_t Evaluate_Commandline_Params(int argc, char *argv[])
 {
 	if (argc == 3) return 0;
 	else return -1;
@@ -34,10 +34,10 @@ __int32 Evaluate_Commandline_Params(__int32 argc, __int8 *argv[])
 //   -1: an error occurred
 int ARCH_MAINDECL main(int argc, char *argv[])
 {
-	HANDLE          hCAP, hTAP;
-	FILE            *fd; // Experimental Spectrum48K support.
-	unsigned __int8 CAP_Machine;
-	__int32         FuncRes, RetVal = -1;
+	HANDLE   hCAP, hTAP;
+	FILE     *fd; // Experimental Spectrum48K support.
+	uint8_t  CAP_Machine;
+	uint32_t FuncRes, RetVal = -1;
 
 	printf("\nCAP2TAP v1.00 - ZoomTape CAP image to TAP image conversion\n");
 	printf("Copyright 2012 Arnd Menge\n\n");

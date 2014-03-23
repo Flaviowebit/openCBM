@@ -6,14 +6,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <opencbm.h>
-#include <arch.h>
+#include "opencbm.h"
+#include "arch.h"
 #include "tape.h"
 #include "misc.h"
 
 // Global variables
-unsigned __int8 MotorOn  = 0,
-                MotorOff = 0;
+uint8_t MotorOn  = 0;
+uint8_t MotorOff = 0;
 
 
 void usage(void)
@@ -30,7 +30,7 @@ void usage(void)
 }
 
 
-__int32 EvaluateCommandlineParams(__int32 argc, __int8 *argv[])
+int32_t EvaluateCommandlineParams(int argc, char *argv[])
 {
 	if (argc != 2)
 		return -1;
@@ -58,7 +58,7 @@ __int32 EvaluateCommandlineParams(__int32 argc, __int8 *argv[])
 int ARCH_MAINDECL main(int argc, char *argv[])
 {
 	CBM_FILE fd;
-	__int32  Status, FuncRes, RetVal = 0;
+	int32_t  Status, FuncRes, RetVal = 0;
 
 	printf("\ntapcontrol v1.00 - Commodore 1530/1531 tape control\n");
 	printf("Copyright 2012 Arnd Menge\n\n");

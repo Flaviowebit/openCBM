@@ -39,6 +39,19 @@
 # define CHAR_BACKTICK '`'
 # define CHAR_TICK     '\''
 
+/* HANDLE definition used in tape libraries */
+# include <windows.h>
+
+/* C99 type definitions from stdint.h, used in tape support */
+typedef __int8 int8_t;
+typedef __int16 int16_t;
+typedef __int32 int32_t;
+typedef __int64 int64_t;
+typedef unsigned __int8 uint8_t;
+typedef unsigned __int16 uint16_t;
+typedef unsigned __int32 uint32_t;
+typedef unsigned __int64 uint64_t;
+
 #if (_MSC_VER <= 1200) // MSVC 6 or older
 typedef unsigned long ULONG_PTR;
 #endif
@@ -50,6 +63,10 @@ typedef unsigned long ULONG_PTR;
 # include <unistd.h>
 # include <errno.h>
 # include <stdbool.h>
+# include <stdint.h>
+
+/* HANDLE definition used in tape libraries */
+typedef void *HANDLE;
 
 #ifdef __LP64__
 typedef unsigned long UINT_PTR;

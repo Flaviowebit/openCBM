@@ -3,12 +3,13 @@
  *  Copyright 2012 Arnd Menge, arnd(at)jonnz(dot)de
 */
 
-#include <Windows.h>
 #include <stdio.h>
 
+#include "misc.h"
+#include "arch.h"
 #include "tape.h"
 
-__int32 OutputError(__int32 Status)
+int32_t OutputError(int32_t Status)
 {
 	switch (Status)
 	{
@@ -51,7 +52,7 @@ __int32 OutputError(__int32 Status)
 }
 
 
-__int32 OutputFuncError(__int32 Status)
+int32_t OutputFuncError(int32_t Status)
 {
 	switch (Status)
 	{

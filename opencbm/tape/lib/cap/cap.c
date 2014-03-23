@@ -6,10 +6,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <Windows.h>
-#include <malloc.h>
 
 #include "cap.h"
+#include "arch.h"
 
 #define Default_CAP_Header_Size 0xA0
 
@@ -400,10 +399,10 @@ int CAP_WriteHeaderAddon(HANDLE hHandle, unsigned char *pucString, unsigned int 
 
 // Exported function.
 // Read a signal from image, increment byte counter.
-int CAP_ReadSignal(HANDLE hHandle, unsigned __int64 *pui64Signal, int *piCounter)
+int CAP_ReadSignal(HANDLE hHandle, uint64_t *pui64Signal, int *piCounter)
 {
-	unsigned char    buf5[5]; // Compatible with 40bit signal width.
-	unsigned __int64 ui64Signal;
+	unsigned char buf5[5]; // Compatible with 40bit signal width.
+	uint64_t      ui64Signal;
 
 	PINFOBLOCK pInfoBlock = (struct _INFOBLOCK*)hHandle;
 
@@ -456,7 +455,7 @@ int CAP_WriteSingleByte(HANDLE hHandle, unsigned char ucByte, int *piCounter)
 
 // Exported function.
 // Write a signal to image, increment counter for each written byte.
-int CAP_WriteSignal(HANDLE hHandle, unsigned __int64 ui64Signal, int *piCounter)
+int CAP_WriteSignal(HANDLE hHandle, uint64_t ui64Signal, int *piCounter)
 {
 	if (CAP_WriteSingleByte( hHandle, (unsigned char) ((ui64Signal >> 32) & 0xff), piCounter ) != CAP_Status_OK)
 		return CAP_Status_Error_Writing_data;
